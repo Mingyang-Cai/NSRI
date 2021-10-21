@@ -1,5 +1,5 @@
 ---
-title: "Part 5-How many factors-3"
+title: "Part 5-How many factors-7"
 author: "Mingyang Cai"
 date: ""
 output: 
@@ -42,7 +42,7 @@ pre { /* Code block - determines code spacing between lines */
 ---
 
 Part 5: Structural equation model (MIMIC SEM) How many factors?  
-Replace 2 for the 0 scores (Not Applicable) in the raw RRP/QRP variables. 
+Replace 6 for the 0 scores (Not Applicable) in the raw RRP/QRP variables. 
 
 ---
 
@@ -92,9 +92,9 @@ d50 <- d50 %>%
 
 d50 <- d50 %>% 
   map(~ .x %>% 
-        mutate_at(vars(!!!syms(paste0(rrp, "_raw"))), list(r = ~ recode(., `0` = 2))) %>% 
+        mutate_at(vars(!!!syms(paste0(rrp, "_raw"))), list(r = ~ recode(., `0` = 6))) %>% 
         rename_at(vars(ends_with(("_raw_r"))), ~ gsub("_raw_r", "", .x)) %>% 
-        mutate_at(vars(!!!syms(paste0(qrp, "_raw"))), list(q = ~ recode(., `0` = 2))) %>% 
+        mutate_at(vars(!!!syms(paste0(qrp, "_raw"))), list(q = ~ recode(., `0` = 6))) %>% 
         rename_at(vars(ends_with(("_raw_q"))), ~ gsub("_raw_q", "", .x))) 
 
 d50 <- d50 %>% 
@@ -133,7 +133,7 @@ Model.1 <- '#latent variable definition
 fit.model.1 <- cfa(Model.1, data = complete(d50[[1]]), estimator = "WLSMV")
 summary(fit.model.1, fit.measures = TRUE)
 ```
-CFI is 0.72.
+CFI is 0.74.
 
 ---
 
@@ -153,17 +153,18 @@ Model.1.modi <- '#latent variable definition
             RDisclFunds ~~ RAuthorship
             RCorrectPub ~~ RErrorCheck
             ROpenData ~~ ROpenCode
-            ROpenAccess ~~ ROpenCode
-            RKeepRecord ~~ RDataManage
+            ROpenData ~~ RKeepRecord
             QResNotes ~~ RKeepRecord
-            QResNotes ~~ RDisclFunds
-            RDisclFunds ~~ ROpenAccess
-            
+            RPreReg ~~ ROpenCode
+            RKeepRecord ~~ RDataManage
+            RKeepRecord ~~ RErrorCheck
+           
 '
 fit.model.1.modi <- cfa(Model.1.modi, data = complete(d50[[1]]), estimator = "WLSMV")
 summary(fit.model.1.modi, fit.measures = TRUE)
+
 ```
-CFI increases to 0.76.
+CFI increases to 0.81.
 
 ---
 
@@ -186,9 +187,8 @@ Model.2 <- '#latent variable definition
 '
 fit.model.2 <- cfa(Model.2, data = complete(d50[[1]]), estimator = "WLSMV", std.lv=TRUE)
 summary(fit.model.2, fit.measures = TRUE)
-
 ```
-The CFI is 0.84.
+The CFI is 0.8.
 
 ---
 
@@ -200,24 +200,22 @@ Model.2.modi <- '#latent variable definition
             QRP =~ QAttention + QSupervision + QResDesign + QUnfairRev 
                  + QUnsubstClaims + QCiteSource + QResNotes + QConcealDetails 
                  + QNoReSubmit + QConcealFlaws + QSelectCites 
-                 + RR_sum
-                 + RCiteSource + RErrorCheck
+                 + RR_sum + ROpenCode + RPreReg + RCiteSource + RDisclFunds
             RRP =~ RDisclFunds + RCorrectPub + RAuthorship + ROpenData 
                  + RKeepRecord + RPreReg + RDataManage + ROpenAccess 
                  + RCiteSource + ROpenCode + RErrorCheck 
-                 + QUnfairRev
+                 
             #variance and covariance
             RDisclFunds ~~ RAuthorship
             RCorrectPub ~~ RErrorCheck
-            ROpenData ~~ ROpenCode 
-            QResNotes ~~ RKeepRecord
-            QCiteSource ~~ RCiteSource
+            ROpenData ~~ ROpenCode
+            RPreReg ~~ ROpenCode
 
 '
 fit.model.2.modi <- cfa(Model.2.modi, data = complete(d50[[1]]), estimator = "WLSMV", std.lv=TRUE)
 summary(fit.model.2.modi, fit.measures = TRUE)
 ```
-The CFI now is 0.89. 
+The CFI now is 0.88. 
 
 
 ---
@@ -229,36 +227,32 @@ print(efa.fit.3)
 fa.diagram(efa.fit.3)
 ```
 
-The factor path plot shows the structure of the model with three factors. `MR2` is the QRP factor, `MR1` is one RRP factor (RRP.1) and `MR3` is the other RRP factor (RRP.2). In this plot, the variable `QUnfairRev` is an indicator of RRP.1. The loading of `QUnfairRev` is -0.35 on RRP.1 and is 0.2 on QRP.  
-
-The loading of `RCorrectPub` is 0.19 on both RRP.1 and RRP.2. To follow the assumption of correlated residuals between `RCorrectPub` and `RErrorCheck`, I treat `RCorrectPub` as an indicator of RRP.1. 
+The factor path plot shows the structure of the model with three factors. `MR2` is the RRP factor, `MR1` is one QRP factor (QRP.1) and `MR3` is the other QRP factor (QRP.2). In this case, efa loads QRPs into two separate QRP factors. 
 
 ---
 
 # Perform confirmatory factor analysis with three factors
 ```{r}
 Model.3 <- '#latent variable definition
-            QRP =~ QAttention + QSupervision + QResDesign  
-                 + QUnsubstClaims + QCiteSource + QResNotes + QConcealDetails 
-                 + QNoReSubmit + QConcealFlaws + QSelectCites 
-                 + RR_sum
-            RRP.1 =~ RDisclFunds + RCorrectPub + RAuthorship  + ROpenAccess 
-                   + RCiteSource  + RErrorCheck + QUnfairRev
-            RRP.2 =~ RKeepRecord + RDataManage + ROpenData + ROpenCode     
-                   + RPreReg
+            QRP.1 =~ QCiteSource + QConcealDetails + QSelectCites + QUnfairRev
+                   + QUnsubstClaims + RCiteSource + QConcealFlaws + QSupervision
+                   + RDisclFunds + RAuthorship
+                   + RR_sum
+            QRP.2 =~ QResNotes + QAttention + QResDesign + QNoReSubmit
+            RRP =~ ROpenCode + ROpenData + RKeepRecord + RDataManage
+                 + RPreReg + RErrorCheck + ROpenAccess + RCorrectPub 
+      
             #variance and covariance
             RDisclFunds ~~ RAuthorship
             RCorrectPub ~~ RErrorCheck
             ROpenData ~~ ROpenCode 
-            RRP.1 ~~ RRP.2
-    
+            QRP.1 ~~ QRP.2
 
 '
 fit.model.3 <- cfa(Model.3, data = complete(d50[[1]]), estimator = "WLSMV")
 summary(fit.model.3, fit.measures = TRUE)
-
 ```
-The CFI is 0.86.
+The CFI is 0.81.
 
 ---
 
@@ -267,27 +261,24 @@ The CFI is 0.86.
 modificationindices(fit.model.3, sort. = TRUE, maximum.number = 5)
 
 Model.3.modi <- '#latent variable definition
-            QRP =~ QAttention + QSupervision + QResDesign  
-                 + QUnsubstClaims + QCiteSource + QResNotes + QConcealDetails 
-                 + QNoReSubmit + QConcealFlaws + QSelectCites 
-                 + RR_sum
-                 + RDisclFunds + QUnfairRev
-            RRP.1 =~ RDisclFunds + RCorrectPub + RAuthorship  + ROpenAccess 
-                   + RCiteSource  + RErrorCheck + QUnfairRev
-            RRP.2 =~ RKeepRecord + RDataManage + ROpenData + ROpenCode     
-                   + RPreReg
+            QRP.1 =~ QCiteSource + QConcealDetails + QSelectCites + QUnfairRev
+                   + QUnsubstClaims + RCiteSource + QConcealFlaws + QSupervision
+                   + RDisclFunds + RAuthorship
+                   + RR_sum + ROpenCode + RErrorCheck
+            QRP.2 =~ QResNotes + QAttention + QResDesign + QNoReSubmit 
+                   + ROpenCode + RErrorCheck
+            RRP =~ ROpenCode + ROpenData + RKeepRecord + RDataManage
+                 + RPreReg + RErrorCheck + ROpenAccess + RCorrectPub 
+                 + QResNotes
+                 
             #variance and covariance
             RDisclFunds ~~ RAuthorship
             RCorrectPub ~~ RErrorCheck
             ROpenData ~~ ROpenCode 
-            RRP.1 ~~ RRP.2
-            QResNotes ~~ RKeepRecord
-            ROpenAccess ~~ ROpenCode
-            QCiteSource ~~ RCiteSource
+            QRP.1 ~~ QRP.2
 
 '
 fit.model.3.modi <- cfa(Model.3.modi, data = complete(d50[[1]]), estimator = "WLSMV")
 summary(fit.model.3.modi, fit.measures = TRUE)
-
 ```
-The CFI is now 0.91.
+The CFI is now 0.88.

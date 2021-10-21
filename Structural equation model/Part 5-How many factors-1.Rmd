@@ -166,8 +166,6 @@ The CFI now is 0.89.
 
 ---
  
-
-
 # Investigate the model with three factors with explanatory factor analysis
 ```{r}
 data.for.fa <- complete(d50[[1]])[c(105:126, 140)]

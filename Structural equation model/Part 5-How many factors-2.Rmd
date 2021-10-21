@@ -80,7 +80,7 @@ set.seed(123)
 
 ---
 
-# Keep 0 scores (Not Applicable) in the raw RRP/QRP variables and combine two dichotomous misconduct items (`RRfabr` and `RRfals`) 
+# Combine two dichotomous misconduct items (`RRfabr` and `RRfals`) 
 ```{r}
 rrp <- c("RDisclFunds", "RCorrectPub", "RAuthorship", "ROpenData", "RKeepRecord", 
          "RPreReg", "RDataManage", "ROpenAccess", "RCiteSource", "ROpenCode", "RErrorCheck")
@@ -137,7 +137,7 @@ CFI is 0.75.
 
 ---
 
-#Five modifications to improve Model 1
+# Five modifications to improve Model 1
 ```{r}
 modificationindices(fit.model.1, sort. = TRUE, maximum.number = 5)
 Model.1.modi <- '#latent variable definition
@@ -162,8 +162,6 @@ Model.1.modi <- '#latent variable definition
 '
 fit.model.1.modi <- cfa(Model.1.modi, data = complete(d50[[1]]), estimator = "WLSMV")
 summary(fit.model.1.modi, fit.measures = TRUE)
-
-
 ```
 CFI increases to 0.78.
 
@@ -225,24 +223,12 @@ The CFI now is 0.91.
  
 # Investigate model with three factors with explanatory factor analysis
 ```{r}
-data.for.fa <- complete(d50[[1]])[c(118 : 140)]
-hetcor(data.for.fa, ML = TRUE)$correlations
-
-fafit.free <- complete(d50[[1]]) %>% extract(c(118 : 140)) %>% hetcor(ML = TRUE) %>% use_series(correlations) %>% fa(., nfactors = 23, rotate = "none")
-n.factors <- length(fafit.free$e.values)
-data.frame(factor.num = as.factor(1 : length(fafit.free$e.values)),
-           Eigenvalue = fafit.free$e.values) %>% ggplot(aes(x = factor.num, 
-                                                            y = Eigenvalue, 
-                                                            group = 1)) + 
-  geom_point() + geom_line() + xlab("Number of factors") + 
-  ylab("Initial eigenvalue") + ggtitle("Scree plot")
-
 efa.fit.3 <- complete(d50[[1]]) %>% extract(c(118 : 140)) %>% hetcor(ML = TRUE) %>% use_series(correlations) %>% fa(., nfactors = 3, rotate = "promax")
 print(efa.fit.3)
 fa.diagram(efa.fit.3)
 ```
 
-The factor path plot shows the structure of the model with three factors. `MR2` is the QRP factor, `MR1` is one RRP factor (RRP.1) and `MR3` is the other RRP factor (RRP.2). In this plot, the variable `QUnfairRev` is an indicator of RRP.1. However, since the loading of `QUnfairRev` is 0.32 on RRP.1 and is 0.3 on QRP. I still treat `QUnfairRev` as an indicator of RRP. Similarly, because the prior assumption of correlated residuals between open data and open code, I treat `ROpenData` and `ROpenCode` as indicators of RRP.2. In fact, the plot shows that these two variables are indicators of different RRP factors. 
+The factor path plot shows the structure of the model with three factors. `MR2` is the QRP factor, `MR1` is one RRP factor (RRP.1) and `MR3` is the other RRP factor (RRP.2). In this plot, the variable `QUnfairRev` is an indicator of RRP.1. However, since the loading of `QUnfairRev` is 0.32 on RRP.1 and is 0.3 on QRP. I still treat `QUnfairRev` as an indicator of QRP. Similarly, because the prior assumption of correlated residuals between open data and open code, I treat `ROpenData` and `ROpenCode` as indicators of RRP.2. In fact, the plot shows that these two variables are indicators of different RRP factors. 
 
 ---
 
@@ -267,7 +253,6 @@ Model.3 <- '#latent variable definition
 '
 fit.model.3 <- cfa(Model.3, data = complete(d50[[1]]), estimator = "WLSMV")
 summary(fit.model.3, fit.measures = TRUE)
-
 ```
 The CFI is 0.89.
 
@@ -293,10 +278,8 @@ Model.3.modi <- '#latent variable definition
             RCorrectPub ~~ RErrorCheck
             ROpenData ~~ ROpenCode 
             RRP.1 ~~ RRP.2
-    
-
+  
 '
-
 fit.model.3.modi <- cfa(Model.3.modi, data = complete(d50[[1]]), estimator = "WLSMV")
 summary(fit.model.3.modi, fit.measures = TRUE)
 
