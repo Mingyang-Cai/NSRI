@@ -214,5 +214,66 @@ summary(fit.model.2.modi, fit.measures = TRUE)
 ```
 The CFI now is 0.92. 
 
+---
+ 
+# Investigate model with three factors with explanatory factor analysis
+```{r}
+efa.fit.3 <- complete(d50[[1]]) %>% extract(c(114:132)) %>% hetcor(ML = TRUE) %>% use_series(correlations) %>% fa(., nfactors = 3, rotate = "promax")
+print(efa.fit.3)
+fa.diagram(efa.fit.3)
+```
+
+The factor path plot shows the structure of the model with three factors. `MR2` is the QRP factor, `MR1` is one RRP factor (RRP.1) and `MR3` is the other RRP factor (RRP.2). In this plot, the variable `QUnfairRev` is an indicator of RRP.1. However, since the loading of `QUnfairRev` is 0.29 on RRP.1 and is 0.28 on QRP. I still treat `QUnfairRev` as an indicator of QRP. 
+
+---
+
+# Perform confirmatory factor analysis with three factors
+```{r}
+Model.3 <- '#latent variable definition
+            QRP =~ QAttention + QSupervision + QResDesign + QUnfairRev 
+                 + QUnsubstClaims + QCiteSource + QResNotes + QConcealDetails 
+                 + QConcealFlaws + QSelectCites 
+                 + RR_sum
+            
+            RRP.1 =~ RCiteSource + ROpenAccess + RDisclFunds + RAuthorship
+                   + RErrorCheck + ROpenData
+                   
+            RRP.2 =~ RKeepRecord + RDataManage       
+            
+            #variance and covariance
+            RDisclFunds ~~ RAuthorship
+
+'
+fit.model.3 <- cfa(Model.3, data = complete(d50[[1]]), estimator = "WLSMV")
+summary(fit.model.3, fit.measures = TRUE)
+```
+The CFI is 0.89.
+
+---
+
+# Five modifications to improve Model 3
+```{r}
+modificationindices(fit.model.3, sort. = TRUE, maximum.number = 5)
+Model.3.modi <- '#latent variable definition
+            QRP =~ QAttention + QSupervision + QResDesign + QUnfairRev 
+                 + QUnsubstClaims + QCiteSource + QResNotes + QConcealDetails 
+                 + QConcealFlaws + QSelectCites + RDisclFunds 
+                 + RR_sum
+            
+            RRP.1 =~ RCiteSource + ROpenAccess + RDisclFunds + RAuthorship
+                   + RErrorCheck + ROpenData + QUnfairRev + QConcealFlaws
+                   + QCiteSource
+                   
+            RRP.2 =~ RKeepRecord + RDataManage       
+            
+            #variance and covariance
+            RDisclFunds ~~ RAuthorship
+            QUnfairRev ~~ ROpenAccess
+
+'
+fit.model.3.modi <- cfa(Model.3.modi, data = complete(d50[[1]]), estimator = "WLSMV")
+summary(fit.model.3.modi, fit.measures = TRUE)
+```
+The CFI is now 0.93.
 
 

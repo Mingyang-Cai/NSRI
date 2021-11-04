@@ -1,0 +1,98 @@
+---
+title: "Missingness in QRP and RRP"
+author: "Mingyang Cai"
+date: ""
+output: 
+   html_document:
+    toc: true
+    toc_depth: 5
+    toc_float: true
+    number_sections: false
+---
+  
+<style type="text/css">
+  
+body{ /* Normal  */
+  font-size: 12px;
+  }
+td {  /* Table  */
+  font-size: 12px;
+}
+h1.title {
+  font-size: 18px;
+  color: DarkBlue;
+}
+h1 { /* Header 1 */
+  font-size: 18px;
+}
+h2 { /* Header 2 */
+  font-size: 18px;
+}
+h3 { /* Header 3 */
+  font-size: 18px;
+}
+code.r{ /* Code block */
+  font-size: 12px;
+}
+pre { /* Code block - determines code spacing between lines */
+  font-size: 14px;
+}
+</style>
+
+---
+```{r message=FALSE, warning=FALSE}
+#Missing data pattern
+library(dplyr)    # Data manipulation
+library(mice)     # Data imputation
+library(magrittr) # Pipes
+library(purrr)    # Functional programming
+library(haven)    # Import data
+library(DT)       # Interactive tables
+library(sjmisc)   # table rotation
+
+set.seed(123)
+
+load("../Workspaces/1. Data import and preparation.Rdata")
+load("../Workspaces/2. Data inspection.Rdata")
+load("../Workspaces/3. Data imputation.Rdata")
+load("../Workspaces/5. Preparation Imputed Datasets.Rdata")
+
+rrp <- c("RDisclFunds", "RCorrectPub", "RAuthorship", "ROpenData", "RKeepRecord", 
+         "RPreReg", "RDataManage", "ROpenAccess", "RCiteSource", "ROpenCode", "RErrorCheck")
+qrp <- c("QAttention", "QSupervision", "QResDesign", "QUnfairRev", "QUnsubstClaims", 
+         "QCiteSource", "QResNotes", "QConcealDetails", "QNoReSubmit", "QConcealFlaws", "QSelectCites")
+
+d50 <- d50 %>%  
+  map(~ .x %>% 
+        mutate_at(vars(!!!syms(paste0(rrp, "_raw"))), na_if, 0)) %>% 
+  map(~ .x %>% 
+        mutate_at(vars(!!!syms(paste0(qrp, "_raw"))), na_if, 0))
+
+qrp_RCorrectPub_response <- d50[[1]] %>% mutate(RCorrectPub_response = !is.na(RCorrectPub_raw)) %>%
+             group_by(RCorrectPub_response) %>% 
+             summarise_at(vars(!!!syms(paste0(qrp, "_raw"))), mean, na.rm = TRUE) %>%
+             rotate_df() %>% extract(-1, ) 
+colnames(qrp_RCorrectPub_response) <- c("RCorrectPub_nonresponse", "RCorrectPub_response")
+qrp_RCorrectPub_response
+
+qrp_RPreReg_response <- d50[[1]] %>% mutate(RPreReg_response = !is.na(RPreReg_raw)) %>%
+  group_by(RPreReg_response) %>% 
+  summarise_at(vars(!!!syms(paste0(qrp, "_raw"))), mean, na.rm = TRUE) %>%
+  rotate_df() %>% extract(-1, ) 
+colnames(qrp_RPreReg_response) <- c("RPreReg_nonresponse", "RPreReg_response")
+qrp_RPreReg_response
+
+qrp_ROpenCode_response <- d50[[1]] %>% mutate(ROpenCode_response = !is.na(ROpenCode_raw)) %>%
+  group_by(ROpenCode_response) %>% 
+  summarise_at(vars(!!!syms(paste0(qrp, "_raw"))), mean, na.rm = TRUE) %>%
+  rotate_df() %>% extract(-1, ) 
+colnames(qrp_ROpenCode_response) <- c("ROpenCode_nonresponse", "ROpenCode_response")
+qrp_ROpenCode_response
+
+rrp_QNoReSubmit_response <- d50[[1]] %>% mutate(QNoReSubmit_response = !is.na(QNoReSubmit_raw)) %>%
+  group_by(QNoReSubmit_response) %>% 
+  summarise_at(vars(!!!syms(paste0(rrp, "_raw"))), mean, na.rm = TRUE) %>%
+  rotate_df() %>% extract(-1, ) 
+colnames(rrp_QNoReSubmit_response) <- c("QNoReSubmit_nonresponse", "QNoReSubmit_response")
+rrp_QNoReSubmit_response
+```
