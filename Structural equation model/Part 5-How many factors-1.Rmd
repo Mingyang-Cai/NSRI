@@ -205,8 +205,8 @@ Model.3 <- '#latent variable definition
             RCorrectPub ~~ RErrorCheck
             ROpenData ~~ ROpenCode 
             RRP.1 ~~ RRP.2
-            QRP ~~ 0 * RRP.1
-            QRP ~~ 0 * RRP.2
+            QRP ~~ RRP.1
+            QRP ~~ RRP.2
 
 '
 fit.model.3 <- cfa(Model.3, data = complete(d50[[1]]), estimator = "WLSMV")
@@ -238,8 +238,8 @@ Model.3.modi <- '#latent variable definition
             RCorrectPub ~~ RErrorCheck
             ROpenData ~~ ROpenCode 
             RRP.1 ~~ RRP.2
-            QRP ~~ 0 * RRP.1
-            QRP ~~ 0 * RRP.2
+            QRP ~~ RRP.1
+            QRP ~~ RRP.2
             QCiteSource ~~   RCiteSource
 
 '
