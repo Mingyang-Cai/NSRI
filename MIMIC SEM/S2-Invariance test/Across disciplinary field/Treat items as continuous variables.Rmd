@@ -121,4 +121,4 @@ summary(Model.2.1, fit.measures = TRUE)
 #invariance test
 lavTestLRT(Model.2.1, Model.2.2, Model.2.3)
 ```
-
+The CFI of the configural invariance model is 0.79. So I think the model does not fit well. Both p-values for model comparison tests are significant. Thus, we may conclude that weak invariance and weak invariance are not supported in this dataset.
