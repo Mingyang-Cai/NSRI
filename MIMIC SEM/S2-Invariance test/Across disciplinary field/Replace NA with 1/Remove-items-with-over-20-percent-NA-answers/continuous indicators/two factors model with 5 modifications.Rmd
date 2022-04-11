@@ -1,0 +1,134 @@
+---
+title: "Two factors model with 5 modifications"
+author: "Mingyang Cai"
+date: ""
+output: 
+   html_document:
+    toc: true
+    toc_depth: 5
+    toc_float: true
+    number_sections: false
+---
+  
+<style type="text/css">
+  
+body{ /* Normal  */
+  font-size: 12px;
+  }
+td {  /* Table  */
+  font-size: 12px;
+}
+h1.title {
+  font-size: 18px;
+  color: DarkBlue;
+}
+h1 { /* Header 1 */
+  font-size: 18px;
+}
+h2 { /* Header 2 */
+  font-size: 18px;
+}
+h3 { /* Header 3 */
+  font-size: 18px;
+}
+code.r{ /* Code block */
+  font-size: 12px;
+}
+pre { /* Code block - determines code spacing between lines */
+  font-size: 14px;
+}
+</style>
+
+
+---
+
+We use the two factors model with 5 modifications which is replaced `NA` by `1` and remove items with over 20% NA answers. All 7-likert QRP and RRP items are treated as continuous variables in the invariance test. 
+
+---
+
+# Packages used
+The following packages are used.  
+```{r message=FALSE, warning=FALSE}
+library(dplyr)    # Data manipulation
+library(mice)     # Data imputation
+library(magrittr) # Pipes
+library(purrr)    # Functional programming
+library(ggplot2)  # Plotting device
+library(lavaan)   # Latent variable analysis
+library(psych)    # Factor analysis
+library(polycor)  # Polychoric correlation
+library(GPArotation) #Rotation 
+library(lavaanPlot) 
+```
+
+---
+
+# Read in the data file
+We load all workspaces from the `\Workspaces\` directory in the project's root.
+```{r}
+load("../../../../../../Workspaces/1. Data import and preparation.Rdata")
+load("../../../../../../Workspaces/2. Data inspection.Rdata")
+load("../../../../../../Workspaces/3. Data imputation.Rdata")
+load("../../../../../../Workspaces/5. Preparation Imputed Datasets.Rdata")
+```
+
+---
+
+# Setting the RNG seed
+```{r}
+set.seed(123)
+```
+
+---
+
+# Invariance test based on disciplinary field
+```{r}
+d50 <- d50 %>% 
+  map(~.x %>% 
+        mutate(RR_sum = rowSums(cbind(RRfabr, RRfals))))
+RRP <- c("RDisclFunds", "RCorrectPub", "RAuthorship", "ROpenData", "RKeepRecord", 
+         "RPreReg", "RDataManage", "ROpenAccess", "RCiteSource", "ROpenCode", "RErrorCheck")
+QRP <- c("QAttention", "QSupervision", "QResDesign", "QUnfairRev", "QUnsubstClaims", 
+         "QResNotes", "QConcealDetails", "QNoReSubmit", "QConcealFlaws", "QSelectCites")
+
+Model.2.modi <- '#latent variable definition
+            QRP =~ QAttention + QSupervision + QResDesign + QUnfairRev 
+                 + QUnsubstClaims + QCiteSource + QResNotes + QConcealDetails 
+                 + QConcealFlaws + QSelectCites 
+                 + RR_sum + RDisclFunds
+            RRP =~ RDisclFunds + RAuthorship + ROpenData 
+                 + RKeepRecord + RDataManage + ROpenAccess 
+                 + RCiteSource + RErrorCheck + QConcealFlaws
+                 + QCiteSource
+                 
+            #variance and covariance
+            RDisclFunds ~~ RAuthorship
+            RKeepRecord ~~   RDataManage
+            QCiteSource ~~   RCiteSource
+
+'
+
+#configural invariance
+dat <- complete(d50[[1]])
+#configural invariance
+Model.2.1 <- cfa(Model.2.modi, data = dat, group = "Field")
+
+#weak invariance
+Model.2.2 <- cfa(Model.2.modi, data = dat, group = "Field", group.equal = "loadings")
+
+#strong invariance
+Model.2.3 <- cfa(Model.2.modi, data = dat, group = "Field", group.equal = c("intercepts", "loadings"))
+
+summary(Model.2.1, fit.measures = TRUE)
+#invariance test
+lavTestLRT(Model.2.1, Model.2.2, Model.2.3)
+```
+The CFI of the configural invariance model is 0.87. So I think the model does not fit well. Both p-values for model comparison tests are significant. Thus, we may conclude that weak invariance and strong invariance are not supported in this dataset.
+
+---
+
+# Summary of weak invariance model
+```{r}
+summary(Model.2.2, fit.measures = TRUE)
+```
+The CFI of the weak invariance model is 0.86.

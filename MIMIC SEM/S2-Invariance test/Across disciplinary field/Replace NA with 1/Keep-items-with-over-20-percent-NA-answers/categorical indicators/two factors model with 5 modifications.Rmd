@@ -1,5 +1,5 @@
 ---
-title: "Three factors model with 5 modifications"
+title: "Two factors model with 5 modifications"
 author: "Mingyang Cai"
 date: ""
 output: 
@@ -59,17 +59,17 @@ library(lavaanPlot)
 
 ---
 
-We use the three factors model with 5 modifications and keep items with over 20% NA answers. In this simulation, all 7-likert QRP and RRP items are treated as catergorical variables. Majority of `NA`s are still replaced by `1`. However, to make sure that every level of the categorical variables is represented in each subgroup, we replace some `NA` with other values. For example, in the disciplinary field `Soc & Beh`, the item `QCiteSource` has no observations in the level `7`. We select one sample in `Soc & Beh` whose value of `QCiteSource` is not applicable and replace `NA` with `7`.   
+We use the two factors model with 5 modifications and keep items with over 20% NA answers. In this simulation, all 7-likert QRP and RRP items are treated as catergorical variables. Majority of `NA`s are still replaced by `1`. However, to make sure that every level of the categorical variables is represented in each subgroup, we replace some `NA` with other values. For example, in the disciplinary field `Soc & Beh`, the item `QCiteSource` has no observations in the level `7`. We select one sample in `Soc & Beh` whose value of `QCiteSource` is not applicable and replace `NA` with `7`.   
 
 ---
 
 # Read in the data file
 We load all workspaces from the `\Workspaces\` directory in the project's root.
 ```{r}
-load("../../../../../Workspaces/1. Data import and preparation.Rdata")
-load("../../../../../Workspaces/2. Data inspection.Rdata")
-load("../../../../../Workspaces/3. Data imputation.Rdata")
-load("../../../../../Workspaces/5. Preparation Imputed Datasets.Rdata")
+load("../../../../../../Workspaces/1. Data import and preparation.Rdata")
+load("../../../../../../Workspaces/2. Data inspection.Rdata")
+load("../../../../../../Workspaces/3. Data imputation.Rdata")
+load("../../../../../../Workspaces/5. Preparation Imputed Datasets.Rdata")
 ```
 
 ---
@@ -130,25 +130,21 @@ d50 <- d50 %>%
 
 
 
-Model.3.modi <- '#latent variable definition
+Model.2.modi <- '#latent variable definition
             QRP =~ QAttention + QSupervision + QResDesign + QUnfairRev 
                  + QUnsubstClaims + QCiteSource + QResNotes + QConcealDetails 
                  + QNoReSubmit + QConcealFlaws + QSelectCites 
                  + RR_sum
-                 + RErrorCheck
-            RRP.1 =~ RDisclFunds + RCorrectPub + RAuthorship  + ROpenAccess 
-                   + RCiteSource  + RErrorCheck 
-                   + QNoReSubmit
-            RRP.2 =~ RKeepRecord + RDataManage + ROpenData + ROpenCode     
-                   + RPreReg
-                   + QNoReSubmit + QConcealFlaws
+                 + RErrorCheck + RCiteSource
+            RRP =~ RDisclFunds + RCorrectPub + RAuthorship + ROpenData 
+                 + RKeepRecord + RPreReg + RDataManage + ROpenAccess 
+                 + RCiteSource + ROpenCode + RErrorCheck 
+                 + QNoReSubmit + QConcealFlaws
+                 
             #variance and covariance
             RDisclFunds ~~ RAuthorship
             RCorrectPub ~~ RErrorCheck
             ROpenData ~~ ROpenCode 
-            RRP.1 ~~ RRP.2
-            QRP ~~ RRP.1
-            QRP ~~ RRP.2
             QCiteSource ~~   RCiteSource
 
 '
@@ -156,7 +152,7 @@ Model.3.modi <- '#latent variable definition
 
 #configural invariance
 dat <- complete(d50[[1]])%>% filter(Field != "Arts & Hum")
-Model.3.1 <- cfa(Model.3.modi, data = dat, group = "Field", 
+Model.2.1 <- cfa(Model.2.modi, data = dat, group = "Field", 
                  ordered = c("RDisclFunds", "RCorrectPub", "RAuthorship", 
                              "ROpenData", "RKeepRecord", "RPreReg", 
                              "RDataManage", "ROpenAccess", "RCiteSource", 
@@ -166,7 +162,7 @@ Model.3.1 <- cfa(Model.3.modi, data = dat, group = "Field",
                              "QConcealDetails", "QNoReSubmit", "QConcealFlaws", 
                              "QSelectCites", "RR_sum"))
 
-Model.3.2 <- cfa(Model.3.modi, data = dat, group = "Field", 
+Model.2.2 <- cfa(Model.2.modi, data = dat, group = "Field", 
                  ordered = c("RDisclFunds", "RCorrectPub", "RAuthorship", 
                              "ROpenData", "RKeepRecord", "RPreReg", 
                              "RDataManage", "ROpenAccess", "RCiteSource", 
@@ -176,7 +172,7 @@ Model.3.2 <- cfa(Model.3.modi, data = dat, group = "Field",
                              "QConcealDetails", "QNoReSubmit", "QConcealFlaws", 
                              "QSelectCites", "RR_sum"), group.equal = "loadings")
 
-Model.3.3 <- cfa(Model.3.modi, data = dat, group = "Field", 
+Model.2.3 <- cfa(Model.2.modi, data = dat, group = "Field", 
                  ordered = c("RDisclFunds", "RCorrectPub", "RAuthorship", 
                              "ROpenData", "RKeepRecord", "RPreReg", 
                              "RDataManage", "ROpenAccess", "RCiteSource", 
@@ -186,7 +182,15 @@ Model.3.3 <- cfa(Model.3.modi, data = dat, group = "Field",
                              "QConcealDetails", "QNoReSubmit", "QConcealFlaws", 
                              "QSelectCites", "RR_sum"), 
                  group.equal = c("intercepts", "loadings"))
-summary(Model.3.1, fit.measures = TRUE)
-lavTestLRT(Model.3.1, Model.3.2, Model.3.3)
+summary(Model.2.1, fit.measures = TRUE)
+lavTestLRT(Model.2.1, Model.2.2, Model.2.3)
 ```
-The CFI of the configural invariance model is 0.91. So I think the configural invariance model fits well. Both p-values for model comparison tests are significant. Thus, we may conclude that weak invariance and strong invariance are not supported in this dataset.
+The CFI of the configural invariance model is 0.92. So I think the configural invariance model fits well. Both p-values for model comparison tests are significant. Thus, we may conclude that weak invariance and strong invariance are not supported in this dataset.
+
+---
+
+# Summary of weak invariance model
+```{r}
+summary(Model.2.2, fit.measures = TRUE)
+```
+The CFI of the weak invariance model is 0.91.

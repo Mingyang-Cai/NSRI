@@ -1,5 +1,5 @@
 ---
-title: "Two factors model with 5 modifications"
+title: "Three factors model with 5 modifications"
 author: "Mingyang Cai"
 date: ""
 output: 
@@ -59,17 +59,17 @@ library(lavaanPlot)
 
 ---
 
-We use the two factors model with 5 modifications and keep items with over 20% NA answers. In this simulation, all 7-likert QRP and RRP items are treated as catergorical variables. Majority of `NA`s are still replaced by `1`. However, to make sure that every level of the categorical variables is represented in each subgroup, we replace some `NA` with other values. For example, in the disciplinary field `Soc & Beh`, the item `QCiteSource` has no observations in the level `7`. We select one sample in `Soc & Beh` whose value of `QCiteSource` is not applicable and replace `NA` with `7`.   
+We use the three factors model with 5 modifications and remove items with over 20% NA answers. In this simulation, all 7-likert QRP and RRP items are treated as catergorical variables. Majority of `NA`s are still replaced by `1`. However, to make sure that every level of the categorical variables is represented in each subgroup, we replace some `NA` with other values. For example, in the disciplinary field `Soc & Beh`, the item `QCiteSource` has no observations in the level `7`. We select one sample in `Soc & Beh` whose value of `QCiteSource` is not applicable and replace `NA` with `7`.   
 
 ---
 
 # Read in the data file
 We load all workspaces from the `\Workspaces\` directory in the project's root.
 ```{r}
-load("../../../../../Workspaces/1. Data import and preparation.Rdata")
-load("../../../../../Workspaces/2. Data inspection.Rdata")
-load("../../../../../Workspaces/3. Data imputation.Rdata")
-load("../../../../../Workspaces/5. Preparation Imputed Datasets.Rdata")
+load("../../../../../../Workspaces/1. Data import and preparation.Rdata")
+load("../../../../../../Workspaces/2. Data inspection.Rdata")
+load("../../../../../../Workspaces/3. Data imputation.Rdata")
+load("../../../../../../Workspaces/5. Preparation Imputed Datasets.Rdata")
 ```
 
 ---
@@ -90,8 +90,12 @@ qrp <- c("QAttention", "QSupervision", "QResDesign", "QUnfairRev", "QUnsubstClai
 
 
 d50 <- d50 %>% 
-  map(select, -all_of(rrp), -all_of(qrp))
+  map(select, -all_of(rrp), -all_of(qrp), -RCorrectPub_raw, -RPreReg_raw, -ROpenCode_raw, -QNoReSubmit_raw)
 
+rrp <- c("RDisclFunds", "RAuthorship", "ROpenData", "RKeepRecord", 
+         "RDataManage", "ROpenAccess", "RCiteSource", "RErrorCheck")
+qrp <- c("QAttention", "QSupervision", "QResDesign", "QUnfairRev", "QUnsubstClaims", 
+         "QCiteSource", "QResNotes", "QConcealDetails", "QConcealFlaws", "QSelectCites")
 
 
 #QCiteSource (7)
@@ -130,59 +134,66 @@ d50 <- d50 %>%
 
 
 
-Model.2.modi <- '#latent variable definition
+Model.3.modi <- '#latent variable definition
             QRP =~ QAttention + QSupervision + QResDesign + QUnfairRev 
                  + QUnsubstClaims + QCiteSource + QResNotes + QConcealDetails 
-                 + QNoReSubmit + QConcealFlaws + QSelectCites 
-                 + RR_sum
-                 + RErrorCheck + RCiteSource
-            RRP =~ RDisclFunds + RCorrectPub + RAuthorship + ROpenData 
-                 + RKeepRecord + RPreReg + RDataManage + ROpenAccess 
-                 + RCiteSource + ROpenCode + RErrorCheck 
-                 + QNoReSubmit + QConcealFlaws
-                 
+                 + QConcealFlaws + QSelectCites 
+                 + RR_sum + RDisclFunds
+            
+            RRP.1 =~ RCiteSource + ROpenAccess + RDisclFunds + RAuthorship
+                   + RErrorCheck + ROpenData + QConcealFlaws + QCiteSource
+                   
+            RRP.2 =~ RKeepRecord + RDataManage + QConcealFlaws      
+            
             #variance and covariance
             RDisclFunds ~~ RAuthorship
-            RCorrectPub ~~ RErrorCheck
-            ROpenData ~~ ROpenCode 
-            QCiteSource ~~   RCiteSource
+            RRP.1 ~~ RRP.2
+            QCiteSource ~~ RCiteSource
 
 '
 
 
 #configural invariance
 dat <- complete(d50[[1]])%>% filter(Field != "Arts & Hum")
-Model.2.1 <- cfa(Model.2.modi, data = dat, group = "Field", 
-                 ordered = c("RDisclFunds", "RCorrectPub", "RAuthorship", 
-                             "ROpenData", "RKeepRecord", "RPreReg", 
+Model.3.1 <- cfa(Model.3.modi, data = dat, group = "Field", 
+                 ordered = c("RDisclFunds", "RAuthorship", 
+                             "ROpenData", "RKeepRecord", 
                              "RDataManage", "ROpenAccess", "RCiteSource", 
-                             "ROpenCode", "RErrorCheck", "QAttention", 
+                             "RErrorCheck", "QAttention", 
                              "QSupervision", "QResDesign", "QUnfairRev", 
                              "QUnsubstClaims", "QCiteSource", "QResNotes", 
-                             "QConcealDetails", "QNoReSubmit", "QConcealFlaws", 
+                             "QConcealDetails", "QConcealFlaws", 
                              "QSelectCites", "RR_sum"))
 
-Model.2.2 <- cfa(Model.2.modi, data = dat, group = "Field", 
-                 ordered = c("RDisclFunds", "RCorrectPub", "RAuthorship", 
-                             "ROpenData", "RKeepRecord", "RPreReg", 
+Model.3.2 <- cfa(Model.3.modi, data = dat, group = "Field", 
+                 ordered = c("RDisclFunds", "RAuthorship", 
+                             "ROpenData", "RKeepRecord", 
                              "RDataManage", "ROpenAccess", "RCiteSource", 
-                             "ROpenCode", "RErrorCheck", "QAttention", 
+                             "RErrorCheck", "QAttention", 
                              "QSupervision", "QResDesign", "QUnfairRev", 
                              "QUnsubstClaims", "QCiteSource", "QResNotes", 
-                             "QConcealDetails", "QNoReSubmit", "QConcealFlaws", 
+                             "QConcealDetails", "QConcealFlaws", 
                              "QSelectCites", "RR_sum"), group.equal = "loadings")
 
-Model.2.3 <- cfa(Model.2.modi, data = dat, group = "Field", 
-                 ordered = c("RDisclFunds", "RCorrectPub", "RAuthorship", 
-                             "ROpenData", "RKeepRecord", "RPreReg", 
+Model.3.3 <- cfa(Model.3.modi, data = dat, group = "Field", 
+                 ordered = c("RDisclFunds", "RAuthorship", 
+                             "ROpenData", "RKeepRecord", 
                              "RDataManage", "ROpenAccess", "RCiteSource", 
-                             "ROpenCode", "RErrorCheck", "QAttention", 
+                             "RErrorCheck", "QAttention", 
                              "QSupervision", "QResDesign", "QUnfairRev", 
                              "QUnsubstClaims", "QCiteSource", "QResNotes", 
-                             "QConcealDetails", "QNoReSubmit", "QConcealFlaws", 
+                             "QConcealDetails", "QConcealFlaws", 
                              "QSelectCites", "RR_sum"), 
                  group.equal = c("intercepts", "loadings"))
-summary(Model.2.1, fit.measures = TRUE)
-lavTestLRT(Model.2.1, Model.2.2, Model.2.3)
+summary(Model.3.1, fit.measures = TRUE)
+lavTestLRT(Model.3.1, Model.3.2, Model.3.3)
 ```
-The CFI of the configural invariance model is 0.92. So I think the configural invariance model fits well. Both p-values for model comparison tests are significant. Thus, we may conclude that weak invariance and strong invariance are not supported in this dataset.
+The CFI of the configural invariance model is 0.95. So I think the configural invariance model fits well. Both p-values for model comparison tests are significant. Thus, we may conclude that weak invariance and strong invariance are not supported in this dataset.
+
+---
+
+# Summary of weak invariance model
+```{r}
+summary(Model.3.2, fit.measures = TRUE)
+```
+The CFI of the weak invariance model is 0.95.

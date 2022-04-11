@@ -275,6 +275,8 @@ pre { /* Code block - determines code spacing between lines */
 }
 </style>
 <hr />
+<p>We use the three factors model which is replaced <code>NA</code> by <code>1</code> and kept items with over 20% NA answers. All 7-likert QRP and RRP items are treated as continuous variables in the invariance test.</p>
+<hr />
 <div id="packages-used" class="section level1">
 <h1>Packages used</h1>
 <p>The following packages are used.</p>
@@ -289,16 +291,14 @@ library(polycor)  # Polychoric correlation
 library(GPArotation) #Rotation 
 library(lavaanPlot) </code></pre>
 <hr />
-<p>We use the three factors model and remove items with over 20% NA answers. In this simulation, all 7-likert QRP and RRP items are treated as catergorical variables. Majority of <code>NA</code>s are still replaced by <code>1</code>. However, to make sure that every level of the categorical variables is represented in each subgroup, we replace some <code>NA</code> with other values. For example, in the disciplinary field <code>Soc &amp; Beh</code>, the item <code>QCiteSource</code> has no observations in the level <code>7</code>. We select one sample in <code>Soc &amp; Beh</code> whose value of <code>QCiteSource</code> is not applicable and replace <code>NA</code> with <code>7</code>.</p>
-<hr />
 </div>
 <div id="read-in-the-data-file" class="section level1">
 <h1>Read in the data file</h1>
 <p>We load all workspaces from the <code>\Workspaces\</code> directory in the project’s root.</p>
-<pre class="r"><code>load(&quot;../../../../../Workspaces/1. Data import and preparation.Rdata&quot;)
-load(&quot;../../../../../Workspaces/2. Data inspection.Rdata&quot;)
-load(&quot;../../../../../Workspaces/3. Data imputation.Rdata&quot;)
-load(&quot;../../../../../Workspaces/5. Preparation Imputed Datasets.Rdata&quot;)</code></pre>
+<pre class="r"><code>load(&quot;../../../../../../Workspaces/1. Data import and preparation.Rdata&quot;)
+load(&quot;../../../../../../Workspaces/2. Data inspection.Rdata&quot;)
+load(&quot;../../../../../../Workspaces/3. Data imputation.Rdata&quot;)
+load(&quot;../../../../../../Workspaces/5. Preparation Imputed Datasets.Rdata&quot;)</code></pre>
 <hr />
 </div>
 <div id="setting-the-rng-seed" class="section level1">
@@ -308,167 +308,101 @@ load(&quot;../../../../../Workspaces/5. Preparation Imputed Datasets.Rdata&quot;
 </div>
 <div id="invariance-test-based-on-disciplinary-field" class="section level1">
 <h1>Invariance test based on disciplinary field</h1>
-<pre class="r"><code>rrp &lt;- c(&quot;RDisclFunds&quot;, &quot;RCorrectPub&quot;, &quot;RAuthorship&quot;, &quot;ROpenData&quot;, &quot;RKeepRecord&quot;, 
-         &quot;RPreReg&quot;, &quot;RDataManage&quot;, &quot;ROpenAccess&quot;, &quot;RCiteSource&quot;, &quot;ROpenCode&quot;, &quot;RErrorCheck&quot;)
-qrp &lt;- c(&quot;QAttention&quot;, &quot;QSupervision&quot;, &quot;QResDesign&quot;, &quot;QUnfairRev&quot;, &quot;QUnsubstClaims&quot;, 
-         &quot;QCiteSource&quot;, &quot;QResNotes&quot;, &quot;QConcealDetails&quot;, &quot;QNoReSubmit&quot;, &quot;QConcealFlaws&quot;, &quot;QSelectCites&quot;)
-
-
-d50 &lt;- d50 %&gt;% 
-  map(select, -all_of(rrp), -all_of(qrp), -RCorrectPub_raw, -RPreReg_raw, -ROpenCode_raw, -QNoReSubmit_raw)
-
-rrp &lt;- c(&quot;RDisclFunds&quot;, &quot;RAuthorship&quot;, &quot;ROpenData&quot;, &quot;RKeepRecord&quot;, 
-         &quot;RDataManage&quot;, &quot;ROpenAccess&quot;, &quot;RCiteSource&quot;, &quot;RErrorCheck&quot;)
-qrp &lt;- c(&quot;QAttention&quot;, &quot;QSupervision&quot;, &quot;QResDesign&quot;, &quot;QUnfairRev&quot;, &quot;QUnsubstClaims&quot;, 
-         &quot;QCiteSource&quot;, &quot;QResNotes&quot;, &quot;QConcealDetails&quot;, &quot;QConcealFlaws&quot;, &quot;QSelectCites&quot;)
-
-
-#QCiteSource (7)
-row.num &lt;- which(complete(d50[[1]])$Field == &quot;Soc &amp; Beh&quot; &amp; complete(d50[[1]])$QCiteSource_raw == 0) %&gt;% min()
-d50 &lt;- d50 %&gt;% map(~.x %&gt;% 
-                     mutate(QCiteSource_raw = replace(QCiteSource_raw, row.num, 7)))
-dat &lt;- complete(d50[[1]])%&gt;% filter(Field == &quot;Soc &amp; Beh&quot;) 
-
-
-#QCiteSource (7)
-row.num &lt;- which(complete(d50[[1]])$Field == &quot;Eng &amp; Nat&quot; &amp; complete(d50[[1]])$QCiteSource_raw == 0) %&gt;% min()
-d50 &lt;- d50 %&gt;% map(~.x %&gt;% 
-                     mutate(QCiteSource_raw = replace(QCiteSource_raw, row.num, 7)))
-dat &lt;- complete(d50[[1]])%&gt;% filter(Field == &quot;Eng &amp; Nat&quot;)
-
-
-d50 &lt;- d50 %&gt;% 
-  map(~ .x %&gt;% 
-        mutate_at(vars(!!!syms(paste0(rrp, &quot;_raw&quot;))), list(r = ~ recode(., `0` = 1))) %&gt;% 
-        rename_at(vars(ends_with((&quot;_raw_r&quot;))), ~ gsub(&quot;_raw_r&quot;, &quot;&quot;, .x)) %&gt;% 
-        mutate_at(vars(!!!syms(paste0(qrp, &quot;_raw&quot;))), list(q = ~ recode(., `0` = 1))) %&gt;% 
-        rename_at(vars(ends_with((&quot;_raw_q&quot;))), ~ gsub(&quot;_raw_q&quot;, &quot;&quot;, .x))) 
-
-d50 &lt;- d50 %&gt;% 
-  map(~ .x %&gt;% 
-        mutate(RRP_ave = rowMeans(cbind(!!!syms(rrp)), na.rm = T)) %&gt;% 
-        mutate(QRP_ave = rowMeans(cbind(!!!syms(qrp)), na.rm = T))) 
-
-d50 &lt;- d50 %&gt;% 
-  map(~ .x %&gt;% 
-        mutate(QRP_1 = rowSums(cbind(!!!syms(qrp)) &gt; 4)) %&gt;% 
-        mutate(QRP_1 = if_else(QRP_1 == 0, 0, 1)))
-
-d50 &lt;- d50 %&gt;% 
+<pre class="r"><code>d50 &lt;- d50 %&gt;% 
   map(~.x %&gt;% 
         mutate(RR_sum = rowSums(cbind(RRfabr, RRfals))))
+RRP &lt;- c(&quot;RDisclFunds&quot;, &quot;RCorrectPub&quot;, &quot;RAuthorship&quot;, &quot;ROpenData&quot;, &quot;RKeepRecord&quot;, 
+         &quot;RPreReg&quot;, &quot;RDataManage&quot;, &quot;ROpenAccess&quot;, &quot;RCiteSource&quot;, &quot;ROpenCode&quot;, &quot;RErrorCheck&quot;)
+QRP &lt;- c(&quot;QAttention&quot;, &quot;QSupervision&quot;, &quot;QResDesign&quot;, &quot;QUnfairRev&quot;, &quot;QUnsubstClaims&quot;, 
+         &quot;QResNotes&quot;, &quot;QConcealDetails&quot;, &quot;QNoReSubmit&quot;, &quot;QConcealFlaws&quot;, &quot;QSelectCites&quot;)
 
 Model.3 &lt;- &#39;#latent variable definition
             QRP =~ QAttention + QSupervision + QResDesign + QUnfairRev 
                  + QUnsubstClaims + QCiteSource + QResNotes + QConcealDetails 
-                 + QConcealFlaws + QSelectCites 
+                 + QNoReSubmit + QConcealFlaws + QSelectCites 
                  + RR_sum
-            
-            RRP.1 =~ RCiteSource + ROpenAccess + RDisclFunds + RAuthorship
-                   + RErrorCheck + ROpenData
-                   
-            RRP.2 =~ RKeepRecord + RDataManage       
-            
+            RRP.1 =~ RDisclFunds + RCorrectPub + RAuthorship  + ROpenAccess 
+                   + RCiteSource  + RErrorCheck 
+            RRP.2 =~ RKeepRecord + RDataManage + ROpenData + ROpenCode     
+                   + RPreReg
             #variance and covariance
             RDisclFunds ~~ RAuthorship
+            RCorrectPub ~~ RErrorCheck
+            ROpenData ~~ ROpenCode 
             RRP.1 ~~ RRP.2
+            QRP ~~ RRP.1
+            QRP ~~ RRP.2
 
 &#39;
+
 #configural invariance
-dat &lt;- complete(d50[[1]])%&gt;% filter(Field != &quot;Arts &amp; Hum&quot;)
-Model.3.1 &lt;- cfa(Model.3, data = dat, group = &quot;Field&quot;, 
-                 ordered = c(&quot;RDisclFunds&quot;, &quot;RAuthorship&quot;, 
-                             &quot;ROpenData&quot;, &quot;RKeepRecord&quot;, 
-                             &quot;RDataManage&quot;, &quot;ROpenAccess&quot;, &quot;RCiteSource&quot;, 
-                             &quot;RErrorCheck&quot;, &quot;QAttention&quot;, 
-                             &quot;QSupervision&quot;, &quot;QResDesign&quot;, &quot;QUnfairRev&quot;, 
-                             &quot;QUnsubstClaims&quot;, &quot;QCiteSource&quot;, &quot;QResNotes&quot;, 
-                             &quot;QConcealDetails&quot;, &quot;QConcealFlaws&quot;, 
-                             &quot;QSelectCites&quot;, &quot;RR_sum&quot;))
+dat &lt;- complete(d50[[1]])
+Model.3.1 &lt;- cfa(Model.3, data = dat, group = &quot;Field&quot;)
 
-Model.3.2 &lt;- cfa(Model.3, data = dat, group = &quot;Field&quot;, 
-                 ordered = c(&quot;RDisclFunds&quot;, &quot;RAuthorship&quot;, 
-                             &quot;ROpenData&quot;, &quot;RKeepRecord&quot;, 
-                             &quot;RDataManage&quot;, &quot;ROpenAccess&quot;, &quot;RCiteSource&quot;, 
-                             &quot;RErrorCheck&quot;, &quot;QAttention&quot;, 
-                             &quot;QSupervision&quot;, &quot;QResDesign&quot;, &quot;QUnfairRev&quot;, 
-                             &quot;QUnsubstClaims&quot;, &quot;QCiteSource&quot;, &quot;QResNotes&quot;, 
-                             &quot;QConcealDetails&quot;, &quot;QConcealFlaws&quot;, 
-                             &quot;QSelectCites&quot;, &quot;RR_sum&quot;), group.equal = &quot;loadings&quot;)
+Model.3.2 &lt;- cfa(Model.3, data = dat, group = &quot;Field&quot;,  group.equal = &quot;loadings&quot;)
 
-Model.3.3 &lt;- cfa(Model.3, data = dat, group = &quot;Field&quot;, 
-                 ordered = c(&quot;RDisclFunds&quot;, &quot;RAuthorship&quot;, 
-                             &quot;ROpenData&quot;, &quot;RKeepRecord&quot;, 
-                             &quot;RDataManage&quot;, &quot;ROpenAccess&quot;, &quot;RCiteSource&quot;, 
-                             &quot;RErrorCheck&quot;, &quot;QAttention&quot;, 
-                             &quot;QSupervision&quot;, &quot;QResDesign&quot;, &quot;QUnfairRev&quot;, 
-                             &quot;QUnsubstClaims&quot;, &quot;QCiteSource&quot;, &quot;QResNotes&quot;, 
-                             &quot;QConcealDetails&quot;, &quot;QConcealFlaws&quot;, 
-                             &quot;QSelectCites&quot;, &quot;RR_sum&quot;), 
+Model.3.3 &lt;- cfa(Model.3, data = dat, group = &quot;Field&quot;,
                  group.equal = c(&quot;intercepts&quot;, &quot;loadings&quot;))
 summary(Model.3.1, fit.measures = TRUE)</code></pre>
-<pre><code>## lavaan 0.6-9 ended normally after 80 iterations
+<pre><code>## lavaan 0.6-9 ended normally after 221 iterations
 ## 
-##   Estimator                                       DWLS
+##   Estimator                                         ML
 ##   Optimization method                           NLMINB
-##   Number of model parameters                       399
+##   Number of model parameters                       300
 ##                                                       
 ##   Number of observations per group:                   
 ##     Eng &amp; Nat                                     1465
 ##     Soc &amp; Beh                                     1965
+##     Arts &amp; Hum                                     636
 ##     Bio &amp; Life                                    2747
 ##                                                       
 ## Model Test User Model:
-##                                               Standard      Robust
-##   Test Statistic                              4136.063    4599.137
-##   Degrees of freedom                               444         444
-##   P-value (Chi-square)                           0.000       0.000
-##   Scaling correction factor                                  0.912
-##   Shift parameter for each group:                                 
-##       Eng &amp; Nat                                             15.723
-##       Soc &amp; Beh                                             21.089
-##       Bio &amp; Life                                            29.482
-##        simple second-order correction                             
+##                                                       
+##   Test statistic                              4213.843
+##   Degrees of freedom                               896
+##   P-value (Chi-square)                           0.000
 ##   Test statistic for each group:
-##     Eng &amp; Nat                                  984.682    1094.868
-##     Soc &amp; Beh                                 1380.511    1534.035
-##     Bio &amp; Life                                1770.870    1970.235
+##     Eng &amp; Nat                                 1046.644
+##     Soc &amp; Beh                                 1236.791
+##     Arts &amp; Hum                                 530.057
+##     Bio &amp; Life                                1400.351
 ## 
 ## Model Test Baseline Model:
 ## 
-##   Test statistic                             44237.520   30959.975
-##   Degrees of freedom                               513         513
-##   P-value                                        0.000       0.000
-##   Scaling correction factor                                  1.436
+##   Test statistic                             18644.502
+##   Degrees of freedom                              1012
+##   P-value                                        0.000
 ## 
 ## User Model versus Baseline Model:
 ## 
-##   Comparative Fit Index (CFI)                    0.916       0.864
-##   Tucker-Lewis Index (TLI)                       0.902       0.842
-##                                                                   
-##   Robust Comparative Fit Index (CFI)                            NA
-##   Robust Tucker-Lewis Index (TLI)                               NA
+##   Comparative Fit Index (CFI)                    0.812
+##   Tucker-Lewis Index (TLI)                       0.787
+## 
+## Loglikelihood and Information Criteria:
+## 
+##   Loglikelihood user model (H0)            -271105.515
+##   Loglikelihood unrestricted model (H1)    -268998.593
+##                                                       
+##   Akaike (AIC)                              542811.029
+##   Bayesian (BIC)                            544859.006
+##   Sample-size adjusted Bayesian (BIC)       543905.677
 ## 
 ## Root Mean Square Error of Approximation:
 ## 
-##   RMSEA                                          0.064       0.067
-##   90 Percent confidence interval - lower         0.062       0.066
-##   90 Percent confidence interval - upper         0.065       0.069
-##   P-value RMSEA &lt;= 0.05                          0.000       0.000
-##                                                                   
-##   Robust RMSEA                                                  NA
-##   90 Percent confidence interval - lower                        NA
-##   90 Percent confidence interval - upper                        NA
+##   RMSEA                                          0.047
+##   90 Percent confidence interval - lower         0.045
+##   90 Percent confidence interval - upper         0.048
+##   P-value RMSEA &lt;= 0.05                          1.000
 ## 
 ## Standardized Root Mean Square Residual:
 ## 
-##   SRMR                                           0.066       0.066
+##   SRMR                                           0.049
 ## 
 ## Parameter Estimates:
 ## 
-##   Standard errors                           Robust.sem
+##   Standard errors                             Standard
 ##   Information                                 Expected
-##   Information saturated (h1) model        Unstructured
+##   Information saturated (h1) model          Structured
 ## 
 ## 
 ## Group 1 [Eng &amp; Nat]:
@@ -477,221 +411,102 @@ summary(Model.3.1, fit.measures = TRUE)</code></pre>
 ##                    Estimate  Std.Err  z-value  P(&gt;|z|)
 ##   QRP =~                                              
 ##     QAttention        1.000                           
-##     QSupervision      0.707    0.055   12.804    0.000
-##     QResDesign        1.248    0.067   18.680    0.000
-##     QUnfairRev        1.218    0.086   14.087    0.000
-##     QUnsubstClaims    1.290    0.065   19.834    0.000
-##     QCiteSource       1.237    0.081   15.354    0.000
-##     QResNotes         1.044    0.060   17.450    0.000
-##     QConcealDetals    1.336    0.071   18.817    0.000
-##     QConcealFlaws     1.029    0.056   18.226    0.000
-##     QSelectCites      1.026    0.060   16.965    0.000
-##     RR_sum            0.122    0.072    1.703    0.089
+##     QSupervision      0.901    0.101    8.885    0.000
+##     QResDesign        0.922    0.083   11.106    0.000
+##     QUnfairRev        0.426    0.041   10.278    0.000
+##     QUnsubstClaims    0.975    0.087   11.251    0.000
+##     QCiteSource       0.435    0.043   10.088    0.000
+##     QResNotes         1.221    0.115   10.662    0.000
+##     QConcealDetals    0.880    0.077   11.418    0.000
+##     QNoReSubmit       1.106    0.117    9.439    0.000
+##     QConcealFlaws     1.275    0.122   10.456    0.000
+##     QSelectCites      1.183    0.116   10.174    0.000
+##     RR_sum            0.056    0.029    1.930    0.054
 ##   RRP.1 =~                                            
-##     RCiteSource       1.000                           
-##     ROpenAccess       0.439    0.035   12.626    0.000
-##     RDisclFunds       0.511    0.042   12.281    0.000
-##     RAuthorship       0.493    0.036   13.560    0.000
-##     RErrorCheck       0.748    0.040   18.670    0.000
-##     ROpenData         0.587    0.036   16.339    0.000
+##     RDisclFunds       1.000                           
+##     RCorrectPub       0.905    0.104    8.696    0.000
+##     RAuthorship       0.775    0.065   11.949    0.000
+##     ROpenAccess       0.955    0.080   11.890    0.000
+##     RCiteSource       0.714    0.054   13.133    0.000
+##     RErrorCheck       0.833    0.065   12.766    0.000
 ##   RRP.2 =~                                            
 ##     RKeepRecord       1.000                           
-##     RDataManage       1.675    0.174    9.608    0.000
+##     RDataManage       1.280    0.117   10.903    0.000
+##     ROpenData         1.387    0.127   10.928    0.000
+##     ROpenCode         1.213    0.123    9.840    0.000
+##     RPreReg           0.785    0.087    9.055    0.000
 ## 
 ## Covariances:
 ##                    Estimate  Std.Err  z-value  P(&gt;|z|)
 ##  .RDisclFunds ~~                                      
-##    .RAuthorship       0.135    0.029    4.715    0.000
+##    .RAuthorship       0.171    0.085    2.015    0.044
+##  .RCorrectPub ~~                                      
+##    .RErrorCheck      -0.282    0.093   -3.025    0.002
+##  .ROpenData ~~                                        
+##    .ROpenCode         0.819    0.129    6.346    0.000
 ##   RRP.1 ~~                                            
-##     RRP.2             0.253    0.028    9.079    0.000
+##     RRP.2             0.504    0.058    8.647    0.000
 ##   QRP ~~                                              
-##     RRP.1            -0.199    0.015  -13.644    0.000
-##     RRP.2            -0.032    0.009   -3.499    0.000
+##     RRP.1            -0.101    0.024   -4.279    0.000
+##     RRP.2             0.026    0.020    1.281    0.200
 ## 
 ## Intercepts:
 ##                    Estimate  Std.Err  z-value  P(&gt;|z|)
-##    .QAttention        0.000                           
-##    .QSupervision      0.000                           
-##    .QResDesign        0.000                           
-##    .QUnfairRev        0.000                           
-##    .QUnsubstClaims    0.000                           
-##    .QCiteSource       0.000                           
-##    .QResNotes         0.000                           
-##    .QConcealDetals    0.000                           
-##    .QConcealFlaws     0.000                           
-##    .QSelectCites      0.000                           
-##    .RR_sum            0.000                           
-##    .RCiteSource       0.000                           
-##    .ROpenAccess       0.000                           
-##    .RDisclFunds       0.000                           
-##    .RAuthorship       0.000                           
-##    .RErrorCheck       0.000                           
-##    .ROpenData         0.000                           
-##    .RKeepRecord       0.000                           
-##    .RDataManage       0.000                           
+##    .QAttention        2.251    0.040   56.614    0.000
+##    .QSupervision      2.306    0.041   55.905    0.000
+##    .QResDesign        1.595    0.028   57.593    0.000
+##    .QUnfairRev        1.149    0.015   76.055    0.000
+##    .QUnsubstClaims    1.812    0.028   63.918    0.000
+##    .QCiteSource       1.233    0.016   77.034    0.000
+##    .QResNotes         2.405    0.040   59.848    0.000
+##    .QConcealDetals    1.552    0.025   63.015    0.000
+##    .QNoReSubmit       1.962    0.046   42.797    0.000
+##    .QConcealFlaws     2.316    0.044   52.985    0.000
+##    .QSelectCites      2.255    0.043   52.634    0.000
+##    .RR_sum            0.386    0.015   26.427    0.000
+##    .RDisclFunds       5.915    0.054  108.772    0.000
+##    .RCorrectPub       3.932    0.073   54.146    0.000
+##    .RAuthorship       5.709    0.044  128.568    0.000
+##    .ROpenAccess       4.954    0.051   97.704    0.000
+##    .RCiteSource       6.517    0.030  214.237    0.000
+##    .RErrorCheck       6.001    0.037  162.657    0.000
+##    .RKeepRecord       4.039    0.052   77.595    0.000
+##    .RDataManage       5.138    0.054   94.367    0.000
+##    .ROpenData         4.855    0.054   90.615    0.000
+##    .ROpenCode         3.703    0.058   63.917    0.000
+##    .RPreReg           2.063    0.048   42.694    0.000
 ##     QRP               0.000                           
 ##     RRP.1             0.000                           
 ##     RRP.2             0.000                           
 ## 
-## Thresholds:
-##                    Estimate  Std.Err  z-value  P(&gt;|z|)
-##     QAttention|t1    -0.291    0.033   -8.738    0.000
-##     QAttention|t2     0.620    0.035   17.644    0.000
-##     QAttention|t3     0.954    0.039   24.599    0.000
-##     QAttention|t4     1.195    0.043   27.892    0.000
-##     QAttention|t5     1.583    0.053   29.847    0.000
-##     QAttention|t6     1.933    0.068   28.305    0.000
-##     QSupervisin|t1   -0.319    0.033   -9.570    0.000
-##     QSupervisin|t2    0.602    0.035   17.188    0.000
-##     QSupervisin|t3    0.922    0.038   24.049    0.000
-##     QSupervisin|t4    1.131    0.042   27.170    0.000
-##     QSupervisin|t5    1.479    0.050   29.725    0.000
-##     QSupervisin|t6    1.880    0.065   28.710    0.000
-##     QResDesign|t1     0.356    0.034   10.608    0.000
-##     QResDesign|t2     1.227    0.043   28.211    0.000
-##     QResDesign|t3     1.510    0.051   29.792    0.000
-##     QResDesign|t4     1.780    0.061   29.323    0.000
-##     QResDesign|t5     2.170    0.084   25.877    0.000
-##     QResDesign|t6     2.545    0.123   20.669    0.000
-##     QUnfairRev|t1     1.291    0.045   28.765    0.000
-##     QUnfairRev|t2     1.992    0.072   27.791    0.000
-##     QUnfairRev|t3     2.248    0.090   24.894    0.000
-##     QUnfairRev|t4     2.371    0.102   23.224    0.000
-##     QUnfairRev|t5     2.591    0.130   19.969    0.000
-##     QUnfairRev|t6     2.871    0.182   15.740    0.000
-##     QUnsbstClms|t1   -0.052    0.033   -1.593    0.111
-##     QUnsbstClms|t2    1.024    0.040   25.713    0.000
-##     QUnsbstClms|t3    1.411    0.048   29.488    0.000
-##     QUnsbstClms|t4    1.748    0.059   29.473    0.000
-##     QUnsbstClms|t5    2.170    0.084   25.877    0.000
-##     QUnsbstClms|t6    2.644    0.138   19.170    0.000
-##     QCiteSource|t1    0.936    0.039   24.279    0.000
-##     QCiteSource|t2    1.842    0.064   28.972    0.000
-##     QCiteSource|t3    2.135    0.081   26.287    0.000
-##     QCiteSource|t4    2.343    0.099   23.610    0.000
-##     QCiteSource|t5    2.779    0.162   17.124    0.000
-##     QCiteSource|t6    3.202    0.288   11.116    0.000
-##     QResNotes|t1     -0.316    0.033   -9.466    0.000
-##     QResNotes|t2      0.361    0.034   10.764    0.000
-##     QResNotes|t3      0.750    0.036   20.644    0.000
-##     QResNotes|t4      1.093    0.041   26.687    0.000
-##     QResNotes|t5      1.653    0.056   29.770    0.000
-##     QResNotes|t6      2.343    0.099   23.610    0.000
-##     QConcelDtls|t1    0.310    0.033    9.310    0.000
-##     QConcelDtls|t2    1.328    0.046   29.027    0.000
-##     QConcelDtls|t3    1.740    0.059   29.506    0.000
-##     QConcelDtls|t4    2.004    0.072   27.672    0.000
-##     QConcelDtls|t5    2.227    0.089   25.164    0.000
-##     QConcelDtls|t6    2.545    0.123   20.669    0.000
-##     QConcelFlws|t1   -0.208    0.033   -6.291    0.000
-##     QConcelFlws|t2    0.579    0.035   16.629    0.000
-##     QConcelFlws|t3    0.879    0.038   23.254    0.000
-##     QConcelFlws|t4    1.078    0.041   26.480    0.000
-##     QConcelFlws|t5    1.366    0.047   29.263    0.000
-##     QConcelFlws|t6    1.797    0.061   29.235    0.000
-##     QSelectCits|t1   -0.112    0.033   -3.421    0.001
-##     QSelectCits|t2    0.581    0.035   16.680    0.000
-##     QSelectCits|t3    0.844    0.037   22.589    0.000
-##     QSelectCits|t4    1.128    0.042   27.131    0.000
-##     QSelectCits|t5    1.489    0.050   29.750    0.000
-##     QSelectCits|t6    1.842    0.064   28.972    0.000
-##     RR_sum|t1         0.390    0.034   11.593    0.000
-##     RR_sum|t2         1.780    0.061   29.323    0.000
-##     RCiteSource|t1   -1.851    0.064  -28.911    0.000
-##     RCiteSource|t2   -1.842    0.064  -28.972    0.000
-##     RCiteSource|t3   -1.806    0.062  -29.188    0.000
-##     RCiteSource|t4   -1.740    0.059  -29.506    0.000
-##     RCiteSource|t5   -1.454    0.049  -29.653    0.000
-##     RCiteSource|t6   -0.616    0.035  -17.543    0.000
-##     ROpenAccess|t1   -1.181    0.043  -27.745    0.000
-##     ROpenAccess|t2   -1.001    0.039  -25.362    0.000
-##     ROpenAccess|t3   -0.871    0.038  -23.112    0.000
-##     ROpenAccess|t4   -0.462    0.034  -13.555    0.000
-##     ROpenAccess|t5    0.016    0.033    0.496    0.620
-##     ROpenAccess|t6    0.671    0.036   18.854    0.000
-##     RDisclFunds|t1   -1.106    0.041  -26.850    0.000
-##     RDisclFunds|t2   -1.081    0.041  -26.522    0.000
-##     RDisclFunds|t3   -1.053    0.040  -26.143    0.000
-##     RDisclFunds|t4   -0.954    0.039  -24.599    0.000
-##     RDisclFunds|t5   -0.834    0.037  -22.397    0.000
-##     RDisclFunds|t6   -0.547    0.035  -15.814    0.000
-##     RAuthorship|t1   -1.572    0.053  -29.848    0.000
-##     RAuthorship|t2   -1.397    0.047  -29.425    0.000
-##     RAuthorship|t3   -1.161    0.042  -27.519    0.000
-##     RAuthorship|t4   -0.917    0.038  -23.956    0.000
-##     RAuthorship|t5   -0.555    0.035  -16.018    0.000
-##     RAuthorship|t6    0.150    0.033    4.569    0.000
-##     RErrorCheck|t1   -1.755    0.060  -29.439    0.000
-##     RErrorCheck|t2   -1.681    0.057  -29.706    0.000
-##     RErrorCheck|t3   -1.526    0.051  -29.817    0.000
-##     RErrorCheck|t4   -1.283    0.045  -28.704    0.000
-##     RErrorCheck|t5   -0.761    0.036  -20.890    0.000
-##     RErrorCheck|t6    0.068    0.033    2.063    0.039
-##     ROpenData|t1     -1.039    0.040  -25.929    0.000
-##     ROpenData|t2     -0.904    0.038  -23.724    0.000
-##     ROpenData|t3     -0.721    0.036  -20.001    0.000
-##     ROpenData|t4     -0.456    0.034  -13.401    0.000
-##     ROpenData|t5     -0.008    0.033   -0.235    0.814
-##     ROpenData|t6      0.694    0.036   19.404    0.000
-##     RKeepRecord|t1   -0.912    0.038  -23.863    0.000
-##     RKeepRecord|t2   -0.616    0.035  -17.543    0.000
-##     RKeepRecord|t3   -0.305    0.033   -9.154    0.000
-##     RKeepRecord|t4    0.068    0.033    2.063    0.039
-##     RKeepRecord|t5    0.563    0.035   16.222    0.000
-##     RKeepRecord|t6    1.231    0.044   28.246    0.000
-##     RDataManage|t1   -1.059    0.040  -26.228    0.000
-##     RDataManage|t2   -0.957    0.039  -24.645    0.000
-##     RDataManage|t3   -0.803    0.037  -21.769    0.000
-##     RDataManage|t4   -0.618    0.035  -17.594    0.000
-##     RDataManage|t5   -0.243    0.033   -7.333    0.000
-##     RDataManage|t6    0.426    0.034   12.575    0.000
-## 
 ## Variances:
 ##                    Estimate  Std.Err  z-value  P(&gt;|z|)
-##    .QAttention        0.734                           
-##    .QSupervision      0.867                           
-##    .QResDesign        0.585                           
-##    .QUnfairRev        0.605                           
-##    .QUnsubstClaims    0.557                           
-##    .QCiteSource       0.593                           
-##    .QResNotes         0.710                           
-##    .QConcealDetals    0.525                           
-##    .QConcealFlaws     0.718                           
-##    .QSelectCites      0.720                           
-##    .RR_sum            0.996                           
-##    .RCiteSource       0.292                           
-##    .ROpenAccess       0.864                           
-##    .RDisclFunds       0.815                           
-##    .RAuthorship       0.828                           
-##    .RErrorCheck       0.605                           
-##    .ROpenData         0.756                           
-##    .RKeepRecord       0.783                           
-##    .RDataManage       0.391                           
-##     QRP               0.266    0.023   11.511    0.000
-##     RRP.1             0.708    0.053   13.339    0.000
-##     RRP.2             0.217    0.029    7.564    0.000
-## 
-## Scales y*:
-##                    Estimate  Std.Err  z-value  P(&gt;|z|)
-##     QAttention        1.000                           
-##     QSupervision      1.000                           
-##     QResDesign        1.000                           
-##     QUnfairRev        1.000                           
-##     QUnsubstClaims    1.000                           
-##     QCiteSource       1.000                           
-##     QResNotes         1.000                           
-##     QConcealDetals    1.000                           
-##     QConcealFlaws     1.000                           
-##     QSelectCites      1.000                           
-##     RR_sum            1.000                           
-##     RCiteSource       1.000                           
-##     ROpenAccess       1.000                           
-##     RDisclFunds       1.000                           
-##     RAuthorship       1.000                           
-##     RErrorCheck       1.000                           
-##     ROpenData         1.000                           
-##     RKeepRecord       1.000                           
-##     RDataManage       1.000                           
+##    .QAttention        1.967    0.077   25.400    0.000
+##    .QSupervision      2.208    0.085   25.863    0.000
+##    .QResDesign        0.825    0.035   23.678    0.000
+##    .QUnfairRev        0.271    0.011   24.874    0.000
+##    .QUnsubstClaims    0.845    0.036   23.367    0.000
+##    .QCiteSource       0.309    0.012   25.060    0.000
+##    .QResNotes         1.845    0.076   24.415    0.000
+##    .QConcealDetals    0.618    0.027   22.944    0.000
+##    .QNoReSubmit       2.653    0.104   25.556    0.000
+##    .QConcealFlaws     2.231    0.090   24.676    0.000
+##    .QSelectCites      2.200    0.088   24.979    0.000
+##    .RR_sum            0.311    0.012   27.032    0.000
+##    .RDisclFunds       3.337    0.143   23.319    0.000
+##    .RCorrectPub       6.912    0.273   25.322    0.000
+##    .RAuthorship       2.290    0.096   23.735    0.000
+##    .ROpenAccess       2.857    0.122   23.458    0.000
+##    .RCiteSource       0.847    0.042   20.145    0.000
+##    .RErrorCheck       1.303    0.064   20.508    0.000
+##    .RKeepRecord       3.204    0.137   23.344    0.000
+##    .RDataManage       3.089    0.150   20.579    0.000
+##    .ROpenData         2.733    0.153   17.890    0.000
+##    .ROpenCode         3.792    0.179   21.199    0.000
+##    .RPreReg           2.949    0.120   24.602    0.000
+##     QRP               0.350    0.053    6.657    0.000
+##     RRP.1             0.996    0.125    7.945    0.000
+##     RRP.2             0.765    0.111    6.895    0.000
 ## 
 ## 
 ## Group 2 [Soc &amp; Beh]:
@@ -700,459 +515,803 @@ summary(Model.3.1, fit.measures = TRUE)</code></pre>
 ##                    Estimate  Std.Err  z-value  P(&gt;|z|)
 ##   QRP =~                                              
 ##     QAttention        1.000                           
-##     QSupervision      0.637    0.051   12.448    0.000
-##     QResDesign        1.254    0.059   21.083    0.000
-##     QUnfairRev        1.132    0.081   13.987    0.000
-##     QUnsubstClaims    1.379    0.062   22.202    0.000
-##     QCiteSource       1.501    0.074   20.218    0.000
-##     QResNotes         1.021    0.055   18.646    0.000
-##     QConcealDetals    1.390    0.065   21.442    0.000
-##     QConcealFlaws     0.950    0.052   18.153    0.000
-##     QSelectCites      1.111    0.058   19.272    0.000
-##     RR_sum            0.051    0.067    0.764    0.445
+##     QSupervision      0.685    0.081    8.406    0.000
+##     QResDesign        0.944    0.079   11.960    0.000
+##     QUnfairRev        0.287    0.031    9.314    0.000
+##     QUnsubstClaims    0.976    0.078   12.475    0.000
+##     QCiteSource       0.469    0.040   11.853    0.000
+##     QResNotes         1.064    0.095   11.171    0.000
+##     QConcealDetals    0.786    0.067   11.761    0.000
+##     QNoReSubmit       0.686    0.082    8.411    0.000
+##     QConcealFlaws     0.970    0.102    9.552    0.000
+##     QSelectCites      1.193    0.101   11.856    0.000
+##     RR_sum            0.033    0.026    1.279    0.201
 ##   RRP.1 =~                                            
-##     RCiteSource       1.000                           
-##     ROpenAccess       0.297    0.029   10.130    0.000
-##     RDisclFunds       0.377    0.036   10.438    0.000
-##     RAuthorship       0.500    0.031   16.153    0.000
-##     RErrorCheck       0.722    0.033   21.846    0.000
-##     ROpenData         0.472    0.030   15.867    0.000
+##     RDisclFunds       1.000                           
+##     RCorrectPub       0.740    0.093    7.997    0.000
+##     RAuthorship       0.927    0.070   13.222    0.000
+##     ROpenAccess       0.968    0.081   11.985    0.000
+##     RCiteSource       0.559    0.044   12.560    0.000
+##     RErrorCheck       0.845    0.066   12.893    0.000
 ##   RRP.2 =~                                            
 ##     RKeepRecord       1.000                           
-##     RDataManage       1.251    0.097   12.949    0.000
+##     RDataManage       1.222    0.097   12.595    0.000
+##     ROpenData         1.408    0.112   12.546    0.000
+##     ROpenCode         1.390    0.114   12.165    0.000
+##     RPreReg           1.205    0.101   11.967    0.000
 ## 
 ## Covariances:
 ##                    Estimate  Std.Err  z-value  P(&gt;|z|)
 ##  .RDisclFunds ~~                                      
-##    .RAuthorship       0.170    0.024    7.164    0.000
+##    .RAuthorship       0.295    0.088    3.336    0.001
+##  .RCorrectPub ~~                                      
+##    .RErrorCheck      -0.089    0.084   -1.062    0.288
+##  .ROpenData ~~                                        
+##    .ROpenCode         0.657    0.108    6.092    0.000
 ##   RRP.1 ~~                                            
-##     RRP.2             0.326    0.024   13.338    0.000
+##     RRP.2             0.522    0.052    9.981    0.000
 ##   QRP ~~                                              
-##     RRP.1            -0.223    0.013  -17.405    0.000
-##     RRP.2            -0.071    0.009   -7.487    0.000
+##     RRP.1            -0.091    0.021   -4.317    0.000
+##     RRP.2            -0.008    0.017   -0.468    0.640
 ## 
 ## Intercepts:
 ##                    Estimate  Std.Err  z-value  P(&gt;|z|)
-##    .QAttention        0.000                           
-##    .QSupervision      0.000                           
-##    .QResDesign        0.000                           
-##    .QUnfairRev        0.000                           
-##    .QUnsubstClaims    0.000                           
-##    .QCiteSource       0.000                           
-##    .QResNotes         0.000                           
-##    .QConcealDetals    0.000                           
-##    .QConcealFlaws     0.000                           
-##    .QSelectCites      0.000                           
-##    .RR_sum            0.000                           
-##    .RCiteSource       0.000                           
-##    .ROpenAccess       0.000                           
-##    .RDisclFunds       0.000                           
-##    .RAuthorship       0.000                           
-##    .RErrorCheck       0.000                           
-##    .ROpenData         0.000                           
-##    .RKeepRecord       0.000                           
-##    .RDataManage       0.000                           
+##    .QAttention        2.282    0.035   65.419    0.000
+##    .QSupervision      2.075    0.034   60.213    0.000
+##    .QResDesign        1.725    0.026   66.566    0.000
+##    .QUnfairRev        1.143    0.012   91.630    0.000
+##    .QUnsubstClaims    1.866    0.024   77.588    0.000
+##    .QCiteSource       1.259    0.013   95.635    0.000
+##    .QResNotes         2.460    0.034   72.646    0.000
+##    .QConcealDetals    1.547    0.022   68.944    0.000
+##    .QNoReSubmit       1.801    0.035   52.162    0.000
+##    .QConcealFlaws     2.371    0.041   58.492    0.000
+##    .QSelectCites      2.306    0.033   68.972    0.000
+##    .RR_sum            0.379    0.013   29.859    0.000
+##    .RDisclFunds       5.792    0.050  115.798    0.000
+##    .RCorrectPub       3.194    0.061   51.938    0.000
+##    .RAuthorship       5.504    0.042  131.578    0.000
+##    .ROpenAccess       4.650    0.046  101.653    0.000
+##    .RCiteSource       6.554    0.024  275.464    0.000
+##    .RErrorCheck       5.918    0.033  181.188    0.000
+##    .RKeepRecord       4.223    0.042  100.626    0.000
+##    .RDataManage       5.542    0.044  126.081    0.000
+##    .ROpenData         4.585    0.047   96.759    0.000
+##    .ROpenCode         2.969    0.050   59.701    0.000
+##    .RPreReg           2.656    0.048   54.868    0.000
 ##     QRP               0.000                           
 ##     RRP.1             0.000                           
 ##     RRP.2             0.000                           
 ## 
-## Thresholds:
-##                    Estimate  Std.Err  z-value  P(&gt;|z|)
-##     QAttention|t1    -0.273    0.029   -9.529    0.000
-##     QAttention|t2     0.586    0.030   19.462    0.000
-##     QAttention|t3     0.877    0.033   26.886    0.000
-##     QAttention|t4     1.147    0.036   31.687    0.000
-##     QAttention|t5     1.563    0.045   34.566    0.000
-##     QAttention|t6     2.036    0.064   31.685    0.000
-##     QSupervisin|t1   -0.038    0.028   -1.331    0.183
-##     QSupervisin|t2    0.773    0.032   24.474    0.000
-##     QSupervisin|t3    1.058    0.035   30.352    0.000
-##     QSupervisin|t4    1.238    0.038   32.789    0.000
-##     QSupervisin|t5    1.525    0.044   34.530    0.000
-##     QSupervisin|t6    1.979    0.061   32.322    0.000
-##     QResDesign|t1     0.174    0.028    6.109    0.000
-##     QResDesign|t2     1.067    0.035   30.498    0.000
-##     QResDesign|t3     1.434    0.042   34.261    0.000
-##     QResDesign|t4     1.714    0.050   34.284    0.000
-##     QResDesign|t5     2.007    0.063   32.021    0.000
-##     QResDesign|t6     2.359    0.087   27.089    0.000
-##     QUnfairRev|t1     1.283    0.039   33.238    0.000
-##     QUnfairRev|t2     2.090    0.067   31.034    0.000
-##     QUnfairRev|t3     2.284    0.081   28.287    0.000
-##     QUnfairRev|t4     2.451    0.096   25.561    0.000
-##     QUnfairRev|t5     2.691    0.126   21.374    0.000
-##     QUnfairRev|t6     2.742    0.134   20.474    0.000
-##     QUnsbstClms|t1   -0.166    0.028   -5.839    0.000
-##     QUnsbstClms|t2    0.983    0.034   29.034    0.000
-##     QUnsbstClms|t3    1.389    0.041   34.033    0.000
-##     QUnsbstClms|t4    1.766    0.052   34.037    0.000
-##     QUnsbstClms|t5    2.235    0.077   29.033    0.000
-##     QUnsbstClms|t6    2.742    0.134   20.474    0.000
-##     QCiteSource|t1    0.815    0.032   25.482    0.000
-##     QCiteSource|t2    1.830    0.054   33.634    0.000
-##     QCiteSource|t3    2.177    0.073   29.873    0.000
-##     QCiteSource|t4    2.646    0.119   22.166    0.000
-##     QCiteSource|t5    3.085    0.210   14.673    0.000
-##     QCiteSource|t6    3.286    0.282   11.663    0.000
-##     QResNotes|t1     -0.371    0.029  -12.803    0.000
-##     QResNotes|t2      0.285    0.029    9.933    0.000
-##     QResNotes|t3      0.651    0.031   21.297    0.000
-##     QResNotes|t4      1.137    0.036   31.552    0.000
-##     QResNotes|t5      1.837    0.055   33.585    0.000
-##     QResNotes|t6      2.380    0.089   26.744    0.000
-##     QConcelDtls|t1    0.363    0.029   12.534    0.000
-##     QConcelDtls|t2    1.331    0.040   33.643    0.000
-##     QConcelDtls|t3    1.703    0.050   34.327    0.000
-##     QConcelDtls|t4    1.911    0.058   32.983    0.000
-##     QConcelDtls|t5    2.150    0.071   30.240    0.000
-##     QConcelDtls|t6    2.380    0.089   26.744    0.000
-##     QConcelFlws|t1   -0.213    0.029   -7.460    0.000
-##     QConcelFlws|t2    0.631    0.030   20.731    0.000
-##     QConcelFlws|t3    0.869    0.033   26.723    0.000
-##     QConcelFlws|t4    1.008    0.034   29.494    0.000
-##     QConcelFlws|t5    1.185    0.037   32.177    0.000
-##     QConcelFlws|t6    1.594    0.046   34.563    0.000
-##     QSelectCits|t1   -0.343    0.029  -11.862    0.000
-##     QSelectCits|t2    0.502    0.030   16.947    0.000
-##     QSelectCits|t3    0.886    0.033   27.090    0.000
-##     QSelectCits|t4    1.208    0.037   32.459    0.000
-##     QSelectCits|t5    1.742    0.051   34.159    0.000
-##     QSelectCits|t6    2.007    0.063   32.021    0.000
-##     RR_sum|t1         0.417    0.029   14.277    0.000
-##     RR_sum|t2         1.742    0.051   34.159    0.000
-##     RCiteSource|t1   -1.970    0.061  -32.415    0.000
-##     RCiteSource|t2   -1.944    0.059  -32.676    0.000
-##     RCiteSource|t3   -1.936    0.059  -32.757    0.000
-##     RCiteSource|t4   -1.888    0.057  -33.187    0.000
-##     RCiteSource|t5   -1.489    0.043  -34.456    0.000
-##     RCiteSource|t6   -0.608    0.030  -20.076    0.000
-##     ROpenAccess|t1   -0.964    0.034  -28.685    0.000
-##     ROpenAccess|t2   -0.834    0.032  -25.940    0.000
-##     ROpenAccess|t3   -0.711    0.031  -22.896    0.000
-##     ROpenAccess|t4   -0.369    0.029  -12.713    0.000
-##     ROpenAccess|t5    0.172    0.028    6.064    0.000
-##     ROpenAccess|t6    0.905    0.033   27.494    0.000
-##     RDisclFunds|t1   -0.983    0.034  -29.034    0.000
-##     RDisclFunds|t2   -0.964    0.034  -28.685    0.000
-##     RDisclFunds|t3   -0.944    0.033  -28.292    0.000
-##     RDisclFunds|t4   -0.901    0.033  -27.413    0.000
-##     RDisclFunds|t5   -0.790    0.032  -24.895    0.000
-##     RDisclFunds|t6   -0.506    0.030  -17.080    0.000
-##     RAuthorship|t1   -1.434    0.042  -34.261    0.000
-##     RAuthorship|t2   -1.235    0.038  -32.760    0.000
-##     RAuthorship|t3   -0.966    0.034  -28.724    0.000
-##     RAuthorship|t4   -0.780    0.032  -24.643    0.000
-##     RAuthorship|t5   -0.410    0.029  -14.054    0.000
-##     RAuthorship|t6    0.217    0.029    7.595    0.000
-##     RErrorCheck|t1   -1.656    0.048  -34.471    0.000
-##     RErrorCheck|t2   -1.608    0.047  -34.552    0.000
-##     RErrorCheck|t3   -1.505    0.044  -34.494    0.000
-##     RErrorCheck|t4   -1.295    0.039  -33.344    0.000
-##     RErrorCheck|t5   -0.711    0.031  -22.896    0.000
-##     RErrorCheck|t6    0.194    0.028    6.830    0.000
-##     ROpenData|t1     -0.954    0.033  -28.489    0.000
-##     ROpenData|t2     -0.778    0.032  -24.600    0.000
-##     ROpenData|t3     -0.585    0.030  -19.418    0.000
-##     ROpenData|t4     -0.264    0.029   -9.214    0.000
-##     ROpenData|t5      0.154    0.028    5.433    0.000
-##     ROpenData|t6      0.806    0.032   25.273    0.000
-##     RKeepRecord|t1   -1.149    0.036  -31.720    0.000
-##     RKeepRecord|t2   -0.768    0.032  -24.347    0.000
-##     RKeepRecord|t3   -0.411    0.029  -14.099    0.000
-##     RKeepRecord|t4   -0.040    0.028   -1.421    0.155
-##     RKeepRecord|t5    0.516    0.030   17.390    0.000
-##     RKeepRecord|t6    1.334    0.040   33.667    0.000
-##     RDataManage|t1   -1.235    0.038  -32.760    0.000
-##     RDataManage|t2   -1.140    0.036  -31.586    0.000
-##     RDataManage|t3   -1.012    0.034  -29.570    0.000
-##     RDataManage|t4   -0.840    0.032  -26.064    0.000
-##     RDataManage|t5   -0.487    0.030  -16.503    0.000
-##     RDataManage|t6    0.132    0.028    4.667    0.000
-## 
 ## Variances:
 ##                    Estimate  Std.Err  z-value  P(&gt;|z|)
-##    .QAttention        0.764                           
-##    .QSupervision      0.904                           
-##    .QResDesign        0.629                           
-##    .QUnfairRev        0.698                           
-##    .QUnsubstClaims    0.551                           
-##    .QCiteSource       0.467                           
-##    .QResNotes         0.754                           
-##    .QConcealDetals    0.544                           
-##    .QConcealFlaws     0.787                           
-##    .QSelectCites      0.709                           
-##    .RR_sum            0.999                           
-##    .RCiteSource       0.237                           
-##    .ROpenAccess       0.933                           
-##    .RDisclFunds       0.891                           
-##    .RAuthorship       0.810                           
-##    .RErrorCheck       0.603                           
-##    .ROpenData         0.830                           
-##    .RKeepRecord       0.672                           
-##    .RDataManage       0.487                           
-##     QRP               0.236    0.019   12.537    0.000
-##     RRP.1             0.763    0.048   16.054    0.000
-##     RRP.2             0.328    0.031   10.507    0.000
-## 
-## Scales y*:
-##                    Estimate  Std.Err  z-value  P(&gt;|z|)
-##     QAttention        1.000                           
-##     QSupervision      1.000                           
-##     QResDesign        1.000                           
-##     QUnfairRev        1.000                           
-##     QUnsubstClaims    1.000                           
-##     QCiteSource       1.000                           
-##     QResNotes         1.000                           
-##     QConcealDetals    1.000                           
-##     QConcealFlaws     1.000                           
-##     QSelectCites      1.000                           
-##     RR_sum            1.000                           
-##     RCiteSource       1.000                           
-##     ROpenAccess       1.000                           
-##     RDisclFunds       1.000                           
-##     RAuthorship       1.000                           
-##     RErrorCheck       1.000                           
-##     ROpenData         1.000                           
-##     RKeepRecord       1.000                           
-##     RDataManage       1.000                           
+##    .QAttention        2.041    0.070   29.062    0.000
+##    .QSupervision      2.170    0.072   30.341    0.000
+##    .QResDesign        1.007    0.037   27.207    0.000
+##    .QUnfairRev        0.277    0.009   29.958    0.000
+##    .QUnsubstClaims    0.802    0.031   25.779    0.000
+##    .QCiteSource       0.263    0.010   27.429    0.000
+##    .QResNotes         1.855    0.065   28.496    0.000
+##    .QConcealDetals    0.772    0.028   27.605    0.000
+##    .QNoReSubmit       2.177    0.072   30.339    0.000
+##    .QConcealFlaws     2.898    0.097   29.833    0.000
+##    .QSelectCites      1.697    0.062   27.424    0.000
+##    .RR_sum            0.316    0.010   31.329    0.000
+##    .RDisclFunds       3.983    0.147   27.178    0.000
+##    .RCorrectPub       6.919    0.232   29.870    0.000
+##    .RAuthorship       2.635    0.101   26.110    0.000
+##    .ROpenAccess       3.237    0.119   27.156    0.000
+##    .RCiteSource       0.821    0.032   25.798    0.000
+##    .RErrorCheck       1.429    0.060   23.706    0.000
+##    .RKeepRecord       2.797    0.102   27.316    0.000
+##    .RDataManage       2.806    0.111   25.270    0.000
+##    .ROpenData         3.095    0.134   23.062    0.000
+##    .ROpenCode         3.577    0.148   24.093    0.000
+##    .RPreReg           3.642    0.136   26.837    0.000
+##     QRP               0.351    0.048    7.357    0.000
+##     RRP.1             0.934    0.117    7.954    0.000
+##     RRP.2             0.664    0.082    8.082    0.000
 ## 
 ## 
-## Group 3 [Bio &amp; Life]:
+## Group 3 [Arts &amp; Hum]:
 ## 
 ## Latent Variables:
 ##                    Estimate  Std.Err  z-value  P(&gt;|z|)
 ##   QRP =~                                              
 ##     QAttention        1.000                           
-##     QSupervision      0.608    0.045   13.392    0.000
-##     QResDesign        1.307    0.057   23.130    0.000
-##     QUnfairRev        1.199    0.078   15.279    0.000
-##     QUnsubstClaims    1.302    0.058   22.305    0.000
-##     QCiteSource       1.339    0.069   19.372    0.000
-##     QResNotes         1.032    0.052   19.892    0.000
-##     QConcealDetals    1.358    0.063   21.443    0.000
-##     QConcealFlaws     0.864    0.046   18.633    0.000
-##     QSelectCites      0.916    0.052   17.752    0.000
-##     RR_sum            0.126    0.058    2.163    0.031
+##     QSupervision      0.507    0.125    4.068    0.000
+##     QResDesign        0.802    0.109    7.365    0.000
+##     QUnfairRev        0.187    0.037    5.060    0.000
+##     QUnsubstClaims    1.081    0.145    7.473    0.000
+##     QCiteSource       0.487    0.073    6.646    0.000
+##     QResNotes         1.063    0.161    6.589    0.000
+##     QConcealDetals    0.839    0.116    7.210    0.000
+##     QNoReSubmit       0.540    0.108    5.019    0.000
+##     QConcealFlaws     1.195    0.173    6.903    0.000
+##     QSelectCites      1.108    0.172    6.426    0.000
+##     RR_sum            0.067    0.041    1.625    0.104
 ##   RRP.1 =~                                            
-##     RCiteSource       1.000                           
-##     ROpenAccess       0.432    0.026   16.887    0.000
-##     RDisclFunds       0.670    0.033   20.092    0.000
-##     RAuthorship       0.521    0.027   19.389    0.000
-##     RErrorCheck       0.847    0.030   28.498    0.000
-##     ROpenData         0.599    0.027   22.240    0.000
+##     RDisclFunds       1.000                           
+##     RCorrectPub       0.625    0.123    5.085    0.000
+##     RAuthorship       0.772    0.107    7.233    0.000
+##     ROpenAccess       0.750    0.105    7.176    0.000
+##     RCiteSource       0.362    0.054    6.674    0.000
+##     RErrorCheck       0.593    0.085    6.935    0.000
 ##   RRP.2 =~                                            
 ##     RKeepRecord       1.000                           
-##     RDataManage       1.318    0.075   17.653    0.000
+##     RDataManage       1.342    0.153    8.789    0.000
+##     ROpenData         1.104    0.140    7.902    0.000
+##     ROpenCode         0.937    0.114    8.214    0.000
+##     RPreReg           0.675    0.088    7.703    0.000
 ## 
 ## Covariances:
 ##                    Estimate  Std.Err  z-value  P(&gt;|z|)
 ##  .RDisclFunds ~~                                      
-##    .RAuthorship       0.102    0.020    5.002    0.000
+##    .RAuthorship       0.585    0.253    2.311    0.021
+##  .RCorrectPub ~~                                      
+##    .RErrorCheck       0.080    0.175    0.456    0.648
+##  .ROpenData ~~                                        
+##    .ROpenCode         0.028    0.179    0.155    0.877
 ##   RRP.1 ~~                                            
-##     RRP.2             0.286    0.017   16.528    0.000
+##     RRP.2             1.023    0.160    6.403    0.000
 ##   QRP ~~                                              
-##     RRP.1            -0.153    0.010  -15.908    0.000
-##     RRP.2            -0.098    0.008  -11.920    0.000
+##     RRP.1             0.052    0.050    1.048    0.295
+##     RRP.2             0.138    0.045    3.095    0.002
 ## 
 ## Intercepts:
 ##                    Estimate  Std.Err  z-value  P(&gt;|z|)
-##    .QAttention        0.000                           
-##    .QSupervision      0.000                           
-##    .QResDesign        0.000                           
-##    .QUnfairRev        0.000                           
-##    .QUnsubstClaims    0.000                           
-##    .QCiteSource       0.000                           
-##    .QResNotes         0.000                           
-##    .QConcealDetals    0.000                           
-##    .QConcealFlaws     0.000                           
-##    .QSelectCites      0.000                           
-##    .RR_sum            0.000                           
-##    .RCiteSource       0.000                           
-##    .ROpenAccess       0.000                           
-##    .RDisclFunds       0.000                           
-##    .RAuthorship       0.000                           
-##    .RErrorCheck       0.000                           
-##    .ROpenData         0.000                           
-##    .RKeepRecord       0.000                           
-##    .RDataManage       0.000                           
+##    .QAttention        2.112    0.064   32.932    0.000
+##    .QSupervision      1.958    0.059   33.181    0.000
+##    .QResDesign        1.407    0.035   40.535    0.000
+##    .QUnfairRev        1.118    0.016   68.367    0.000
+##    .QUnsubstClaims    1.767    0.045   39.455    0.000
+##    .QCiteSource       1.272    0.027   47.187    0.000
+##    .QResNotes         2.053    0.060   34.271    0.000
+##    .QConcealDetals    1.429    0.039   37.115    0.000
+##    .QNoReSubmit       1.377    0.048   28.890    0.000
+##    .QConcealFlaws     1.997    0.061   32.748    0.000
+##    .QSelectCites      2.223    0.066   33.876    0.000
+##    .RR_sum            0.379    0.021   17.686    0.000
+##    .RDisclFunds       4.767    0.108   44.342    0.000
+##    .RCorrectPub       3.398    0.109   31.100    0.000
+##    .RAuthorship       5.115    0.095   53.958    0.000
+##    .ROpenAccess       4.343    0.080   54.533    0.000
+##    .RCiteSource       6.608    0.044  149.582    0.000
+##    .RErrorCheck       5.888    0.066   89.240    0.000
+##    .RKeepRecord       3.682    0.090   41.058    0.000
+##    .RDataManage       4.017    0.103   38.843    0.000
+##    .ROpenData         4.478    0.098   45.872    0.000
+##    .ROpenCode         2.050    0.078   26.375    0.000
+##    .RPreReg           1.731    0.067   26.001    0.000
 ##     QRP               0.000                           
 ##     RRP.1             0.000                           
 ##     RRP.2             0.000                           
 ## 
-## Thresholds:
+## Variances:
 ##                    Estimate  Std.Err  z-value  P(&gt;|z|)
-##     QAttention|t1    -0.517    0.025  -20.590    0.000
-##     QAttention|t2     0.538    0.025   21.338    0.000
-##     QAttention|t3     0.838    0.027   30.775    0.000
-##     QAttention|t4     1.068    0.030   36.085    0.000
-##     QAttention|t5     1.404    0.035   40.342    0.000
-##     QAttention|t6     1.799    0.045   40.020    0.000
-##     QSupervisin|t1   -0.399    0.025  -16.188    0.000
-##     QSupervisin|t2    0.587    0.025   23.051    0.000
-##     QSupervisin|t3    0.887    0.028   32.059    0.000
-##     QSupervisin|t4    1.065    0.030   36.024    0.000
-##     QSupervisin|t5    1.383    0.034   40.197    0.000
-##     QSupervisin|t6    1.894    0.048   39.179    0.000
-##     QResDesign|t1     0.092    0.024    3.834    0.000
-##     QResDesign|t2     1.120    0.030   37.013    0.000
-##     QResDesign|t3     1.458    0.036   40.623    0.000
-##     QResDesign|t4     1.721    0.043   40.501    0.000
-##     QResDesign|t5     2.010    0.053   37.814    0.000
-##     QResDesign|t6     2.409    0.078   31.066    0.000
-##     QUnfairRev|t1     1.256    0.032   38.997    0.000
-##     QUnfairRev|t2     2.144    0.060   35.852    0.000
-##     QUnfairRev|t3     2.361    0.074   31.983    0.000
-##     QUnfairRev|t4     2.523    0.088   28.767    0.000
-##     QUnfairRev|t5     2.684    0.106   25.422    0.000
-##     QUnfairRev|t6     3.064    0.173   17.745    0.000
-##     QUnsbstClms|t1   -0.217    0.024   -8.978    0.000
-##     QUnsbstClms|t2    0.994    0.029   34.568    0.000
-##     QUnsbstClms|t3    1.496    0.037   40.759    0.000
-##     QUnsbstClms|t4    1.808    0.045   39.950    0.000
-##     QUnsbstClms|t5    2.182    0.062   35.232    0.000
-##     QUnsbstClms|t6    2.719    0.110   24.691    0.000
-##     QCiteSource|t1    0.716    0.026   27.240    0.000
-##     QCiteSource|t2    1.781    0.044   40.149    0.000
-##     QCiteSource|t3    2.172    0.061   35.395    0.000
-##     QCiteSource|t4    2.501    0.086   29.205    0.000
-##     QCiteSource|t5    2.908    0.140   20.804    0.000
-##     QCiteSource|t6    3.064    0.173   17.745    0.000
-##     QResNotes|t1     -0.547    0.025  -21.637    0.000
-##     QResNotes|t2      0.336    0.024   13.765    0.000
-##     QResNotes|t3      0.695    0.026   26.585    0.000
-##     QResNotes|t4      1.135    0.030   37.274    0.000
-##     QResNotes|t5      1.794    0.045   40.054    0.000
-##     QResNotes|t6      2.409    0.078   31.066    0.000
-##     QConcelDtls|t1    0.294    0.024   12.096    0.000
-##     QConcelDtls|t2    1.395    0.035   40.279    0.000
-##     QConcelDtls|t3    1.706    0.042   40.576    0.000
-##     QConcelDtls|t4    1.922    0.049   38.881    0.000
-##     QConcelDtls|t5    2.053    0.055   37.224    0.000
-##     QConcelDtls|t6    2.409    0.078   31.066    0.000
-##     QConcelFlws|t1   -0.353    0.024  -14.409    0.000
-##     QConcelFlws|t2    0.593    0.026   23.237    0.000
-##     QConcelFlws|t3    0.809    0.027   29.965    0.000
-##     QConcelFlws|t4    0.980    0.029   34.275    0.000
-##     QConcelFlws|t5    1.183    0.031   38.026    0.000
-##     QConcelFlws|t6    1.632    0.040   40.814    0.000
-##     QSelectCits|t1   -0.501    0.025  -19.991    0.000
-##     QSelectCits|t2    0.327    0.024   13.424    0.000
-##     QSelectCits|t3    0.654    0.026   25.268    0.000
-##     QSelectCits|t4    1.030    0.029   35.337    0.000
-##     QSelectCits|t5    1.477    0.036   40.697    0.000
-##     QSelectCits|t6    1.905    0.049   39.064    0.000
-##     RR_sum|t1         0.350    0.024   14.296    0.000
-##     RR_sum|t2         1.759    0.044   40.292    0.000
-##     RCiteSource|t1   -1.679    0.041  -40.684    0.000
-##     RCiteSource|t2   -1.653    0.041  -40.765    0.000
-##     RCiteSource|t3   -1.639    0.040  -40.800    0.000
-##     RCiteSource|t4   -1.579    0.039  -40.872    0.000
-##     RCiteSource|t5   -1.291    0.033  -39.389    0.000
-##     RCiteSource|t6   -0.311    0.024  -12.779    0.000
-##     ROpenAccess|t1   -1.144    0.031  -37.417    0.000
-##     ROpenAccess|t2   -1.029    0.029  -35.306    0.000
-##     ROpenAccess|t3   -0.851    0.027  -31.124    0.000
-##     ROpenAccess|t4   -0.443    0.025  -17.886    0.000
-##     ROpenAccess|t5    0.125    0.024    5.206    0.000
-##     ROpenAccess|t6    0.887    0.028   32.059    0.000
-##     RDisclFunds|t1   -1.371    0.034  -40.111    0.000
-##     RDisclFunds|t2   -1.364    0.034  -40.057    0.000
-##     RDisclFunds|t3   -1.344    0.034  -39.889    0.000
-##     RDisclFunds|t4   -1.317    0.033  -39.648    0.000
-##     RDisclFunds|t5   -1.195    0.031  -38.187    0.000
-##     RDisclFunds|t6   -0.810    0.027  -30.001    0.000
-##     RAuthorship|t1   -1.632    0.040  -40.814    0.000
-##     RAuthorship|t2   -1.241    0.032  -38.802    0.000
-##     RAuthorship|t3   -0.859    0.027  -31.333    0.000
-##     RAuthorship|t4   -0.600    0.026  -23.496    0.000
-##     RAuthorship|t5   -0.175    0.024   -7.264    0.000
-##     RAuthorship|t6    0.678    0.026   26.038    0.000
-##     RErrorCheck|t1   -1.746    0.043  -40.368    0.000
-##     RErrorCheck|t2   -1.657    0.041  -40.755    0.000
-##     RErrorCheck|t3   -1.519    0.037  -40.815    0.000
-##     RErrorCheck|t4   -1.326    0.033  -39.730    0.000
-##     RErrorCheck|t5   -0.804    0.027  -29.824    0.000
-##     RErrorCheck|t6    0.154    0.024    6.426    0.000
-##     ROpenData|t1     -1.202    0.031  -38.293    0.000
-##     ROpenData|t2     -1.010    0.029  -34.923    0.000
-##     ROpenData|t3     -0.786    0.027  -29.326    0.000
-##     ROpenData|t4     -0.454    0.025  -18.262    0.000
-##     ROpenData|t5      0.078    0.024    3.262    0.001
-##     ROpenData|t6      0.908    0.028   32.571    0.000
-##     RKeepRecord|t1   -1.233    0.032  -38.703    0.000
-##     RKeepRecord|t2   -0.850    0.027  -31.089    0.000
-##     RKeepRecord|t3   -0.487    0.025  -19.503    0.000
-##     RKeepRecord|t4   -0.088    0.024   -3.681    0.000
-##     RKeepRecord|t5    0.443    0.025   17.886    0.000
-##     RKeepRecord|t6    1.300    0.033   39.477    0.000
-##     RDataManage|t1   -1.639    0.040  -40.800    0.000
-##     RDataManage|t2   -1.479    0.036  -40.706    0.000
-##     RDataManage|t3   -1.311    0.033  -39.585    0.000
-##     RDataManage|t4   -1.118    0.030  -36.984    0.000
-##     RDataManage|t5   -0.705    0.026  -26.913    0.000
-##     RDataManage|t6    0.095    0.024    3.948    0.000
+##    .QAttention        2.238    0.134   16.740    0.000
+##    .QSupervision      2.117    0.121   17.537    0.000
+##    .QResDesign        0.524    0.035   14.810    0.000
+##    .QUnfairRev        0.157    0.009   17.287    0.000
+##    .QUnsubstClaims    0.836    0.058   14.387    0.000
+##    .QCiteSource       0.373    0.023   16.275    0.000
+##    .QResNotes         1.858    0.114   16.342    0.000
+##    .QConcealDetals    0.678    0.044   15.278    0.000
+##    .QNoReSubmit       1.336    0.077   17.300    0.000
+##    .QConcealFlaws     1.826    0.115   15.913    0.000
+##    .QSelectCites      2.277    0.138   16.512    0.000
+##    .RR_sum            0.290    0.016   17.795    0.000
+##    .RDisclFunds       5.634    0.390   14.461    0.000
+##    .RCorrectPub       6.921    0.414   16.706    0.000
+##    .RAuthorship       4.693    0.307   15.303    0.000
+##    .ROpenAccess       3.067    0.209   14.664    0.000
+##    .RCiteSource       1.016    0.065   15.625    0.000
+##    .RErrorCheck       2.166    0.145   14.889    0.000
+##    .RKeepRecord       3.826    0.253   15.145    0.000
+##    .RDataManage       4.480    0.329   13.637    0.000
+##    .ROpenData         4.488    0.311   14.430    0.000
+##    .ROpenCode         2.710    0.195   13.903    0.000
+##    .RPreReg           2.231    0.142   15.744    0.000
+##     QRP               0.377    0.089    4.246    0.000
+##     RRP.1             1.717    0.349    4.914    0.000
+##     RRP.2             1.290    0.233    5.548    0.000
+## 
+## 
+## Group 4 [Bio &amp; Life]:
+## 
+## Latent Variables:
+##                    Estimate  Std.Err  z-value  P(&gt;|z|)
+##   QRP =~                                              
+##     QAttention        1.000                           
+##     QSupervision      0.692    0.070    9.902    0.000
+##     QResDesign        0.866    0.062   13.889    0.000
+##     QUnfairRev        0.260    0.023   11.083    0.000
+##     QUnsubstClaims    0.805    0.058   13.944    0.000
+##     QCiteSource       0.351    0.030   11.695    0.000
+##     QResNotes         0.890    0.072   12.422    0.000
+##     QConcealDetals    0.634    0.050   12.704    0.000
+##     QNoReSubmit       0.670    0.067   10.029    0.000
+##     QConcealFlaws     0.823    0.079   10.447    0.000
+##     QSelectCites      1.061    0.082   12.879    0.000
+##     RR_sum            0.047    0.021    2.226    0.026
+##   RRP.1 =~                                            
+##     RDisclFunds       1.000                           
+##     RCorrectPub       0.830    0.073   11.448    0.000
+##     RAuthorship       0.736    0.045   16.291    0.000
+##     ROpenAccess       1.017    0.054   18.921    0.000
+##     RCiteSource       0.816    0.040   20.212    0.000
+##     RErrorCheck       0.815    0.042   19.583    0.000
+##   RRP.2 =~                                            
+##     RKeepRecord       1.000                           
+##     RDataManage       1.100    0.089   12.310    0.000
+##     ROpenData         1.482    0.117   12.616    0.000
+##     ROpenCode         1.329    0.118   11.219    0.000
+##     RPreReg           0.834    0.101    8.282    0.000
+## 
+## Covariances:
+##                    Estimate  Std.Err  z-value  P(&gt;|z|)
+##  .RDisclFunds ~~                                      
+##    .RAuthorship       0.080    0.051    1.565    0.118
+##  .RCorrectPub ~~                                      
+##    .RErrorCheck      -0.233    0.068   -3.423    0.001
+##  .ROpenData ~~                                        
+##    .ROpenCode         0.722    0.084    8.547    0.000
+##   RRP.1 ~~                                            
+##     RRP.2             0.490    0.041   12.090    0.000
+##   QRP ~~                                              
+##     RRP.1            -0.036    0.018   -2.013    0.044
+##     RRP.2            -0.052    0.015   -3.464    0.001
+## 
+## Intercepts:
+##                    Estimate  Std.Err  z-value  P(&gt;|z|)
+##    .QAttention        2.452    0.031   79.805    0.000
+##    .QSupervision      2.377    0.031   77.154    0.000
+##    .QResDesign        1.740    0.021   81.305    0.000
+##    .QUnfairRev        1.140    0.010  116.316    0.000
+##    .QUnsubstClaims    1.866    0.020   94.718    0.000
+##    .QCiteSource       1.299    0.012  106.717    0.000
+##    .QResNotes         2.492    0.028   89.780    0.000
+##    .QConcealDetals    1.565    0.019   82.494    0.000
+##    .QNoReSubmit       1.927    0.029   65.738    0.000
+##    .QConcealFlaws     2.457    0.034   72.375    0.000
+##    .QSelectCites      2.570    0.031   83.091    0.000
+##    .RR_sum            0.403    0.011   37.353    0.000
+##    .RDisclFunds       6.320    0.033  194.348    0.000
+##    .RCorrectPub       3.614    0.054   67.090    0.000
+##    .RAuthorship       5.190    0.033  156.131    0.000
+##    .ROpenAccess       4.834    0.036  134.478    0.000
+##    .RCiteSource       6.320    0.026  246.521    0.000
+##    .RErrorCheck       5.982    0.027  224.296    0.000
+##    .RKeepRecord       4.341    0.035  124.507    0.000
+##    .RDataManage       5.875    0.030  194.769    0.000
+##    .ROpenData         4.839    0.036  134.700    0.000
+##    .ROpenCode         3.423    0.042   81.938    0.000
+##    .RPreReg           3.198    0.046   69.726    0.000
+##     QRP               0.000                           
+##     RRP.1             0.000                           
+##     RRP.2             0.000                           
 ## 
 ## Variances:
 ##                    Estimate  Std.Err  z-value  P(&gt;|z|)
-##    .QAttention        0.776                           
-##    .QSupervision      0.917                           
-##    .QResDesign        0.617                           
-##    .QUnfairRev        0.678                           
-##    .QUnsubstClaims    0.620                           
-##    .QCiteSource       0.598                           
-##    .QResNotes         0.761                           
-##    .QConcealDetals    0.587                           
-##    .QConcealFlaws     0.833                           
-##    .QSelectCites      0.812                           
-##    .RR_sum            0.996                           
-##    .RCiteSource       0.386                           
-##    .ROpenAccess       0.885                           
-##    .RDisclFunds       0.724                           
-##    .RAuthorship       0.833                           
-##    .RErrorCheck       0.559                           
-##    .ROpenData         0.780                           
-##    .RKeepRecord       0.755                           
-##    .RDataManage       0.574                           
-##     QRP               0.224    0.016   13.673    0.000
-##     RRP.1             0.614    0.031   20.103    0.000
-##     RRP.2             0.245    0.020   12.142    0.000
+##    .QAttention        2.187    0.065   33.503    0.000
+##    .QSupervision      2.412    0.068   35.523    0.000
+##    .QResDesign        0.953    0.031   30.919    0.000
+##    .QUnfairRev        0.236    0.007   34.850    0.000
+##    .QUnsubstClaims    0.802    0.026   30.757    0.000
+##    .QCiteSource       0.356    0.010   34.373    0.000
+##    .QResNotes         1.794    0.053   33.629    0.000
+##    .QConcealDetals    0.825    0.025   33.268    0.000
+##    .QNoReSubmit       2.178    0.061   35.462    0.000
+##    .QConcealFlaws     2.890    0.082   35.245    0.000
+##    .QSelectCites      2.168    0.066   33.016    0.000
+##    .RR_sum            0.318    0.009   37.008    0.000
+##    .RDisclFunds       1.961    0.067   29.333    0.000
+##    .RCorrectPub       7.323    0.207   35.443    0.000
+##    .RAuthorship       2.524    0.076   33.421    0.000
+##    .ROpenAccess       2.572    0.082   31.433    0.000
+##    .RCiteSource       1.177    0.040   29.091    0.000
+##    .RErrorCheck       1.327    0.045   29.656    0.000
+##    .RKeepRecord       2.886    0.086   33.380    0.000
+##    .RDataManage       1.951    0.064   30.314    0.000
+##    .ROpenData         2.549    0.095   26.720    0.000
+##    .ROpenCode         3.992    0.128   31.150    0.000
+##    .RPreReg           5.464    0.153   35.732    0.000
+##     QRP               0.408    0.047    8.696    0.000
+##     RRP.1             0.944    0.071   13.337    0.000
+##     RRP.2             0.453    0.059    7.700    0.000</code></pre>
+<pre class="r"><code>#invariance test
+lavTestLRT(Model.3.1, Model.3.2, Model.3.3)</code></pre>
+<pre><code>## Chi-Squared Difference Test
 ## 
-## Scales y*:
-##                    Estimate  Std.Err  z-value  P(&gt;|z|)
-##     QAttention        1.000                           
-##     QSupervision      1.000                           
-##     QResDesign        1.000                           
-##     QUnfairRev        1.000                           
-##     QUnsubstClaims    1.000                           
-##     QCiteSource       1.000                           
-##     QResNotes         1.000                           
-##     QConcealDetals    1.000                           
-##     QConcealFlaws     1.000                           
-##     QSelectCites      1.000                           
-##     RR_sum            1.000                           
-##     RCiteSource       1.000                           
-##     ROpenAccess       1.000                           
-##     RDisclFunds       1.000                           
-##     RAuthorship       1.000                           
-##     RErrorCheck       1.000                           
-##     ROpenData         1.000                           
-##     RKeepRecord       1.000                           
-##     RDataManage       1.000</code></pre>
-<pre class="r"><code>lavTestLRT(Model.3.1, Model.3.2, Model.3.3)</code></pre>
-<pre><code>## Scaled Chi-Squared Difference Test (method = &quot;satorra.2000&quot;)
-## 
-## lavaan NOTE:
-##     The &quot;Chisq&quot; column contains standard test statistics, not the
-##     robust test that should be reported per model. A robust difference
-##     test is a function of two standard (not robust) statistics.
-##  
-##            Df AIC BIC  Chisq Chisq diff Df diff Pr(&gt;Chisq)    
-## Model.3.1 444         4136.1                                  
-## Model.3.2 476         4327.8      70.09      32  0.0001154 ***
-## Model.3.3 652         4925.7     660.09     176  &lt; 2.2e-16 ***
+##             Df    AIC    BIC  Chisq Chisq diff Df diff Pr(&gt;Chisq)    
+## Model.3.1  896 542811 544859 4213.8                                  
+## Model.3.2  956 542888 544527 4411.1     197.23      60  &lt; 2.2e-16 ***
+## Model.3.3 1016 544102 545331 5744.5    1333.47      60  &lt; 2.2e-16 ***
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
-<p>The CFI of the configural invariance model is 0.92. Both p-values for model comparison tests are significant. Thus, we may conclude that weak invariance and strong invariance are not supported in this dataset.</p>
+<p>The CFI of the configural invariance model is 0.81. So I think the model does not fit well. Both p-values for model comparison tests are significant. Thus, we may conclude that weak invariance and strong invariance are not supported in this dataset.</p>
+<hr />
+</div>
+<div id="summary-of-weak-invariance-model" class="section level1">
+<h1>Summary of weak invariance model</h1>
+<pre class="r"><code>summary(Model.3.2, fit.measures = TRUE)</code></pre>
+<pre><code>## lavaan 0.6-9 ended normally after 147 iterations
+## 
+##   Estimator                                         ML
+##   Optimization method                           NLMINB
+##   Number of model parameters                       300
+##   Number of equality constraints                    60
+##                                                       
+##   Number of observations per group:                   
+##     Eng &amp; Nat                                     1465
+##     Soc &amp; Beh                                     1965
+##     Arts &amp; Hum                                     636
+##     Bio &amp; Life                                    2747
+##                                                       
+## Model Test User Model:
+##                                                       
+##   Test statistic                              4411.075
+##   Degrees of freedom                               956
+##   P-value (Chi-square)                           0.000
+##   Test statistic for each group:
+##     Eng &amp; Nat                                 1087.630
+##     Soc &amp; Beh                                 1285.221
+##     Arts &amp; Hum                                 593.824
+##     Bio &amp; Life                                1444.399
+## 
+## Model Test Baseline Model:
+## 
+##   Test statistic                             18644.502
+##   Degrees of freedom                              1012
+##   P-value                                        0.000
+## 
+## User Model versus Baseline Model:
+## 
+##   Comparative Fit Index (CFI)                    0.804
+##   Tucker-Lewis Index (TLI)                       0.793
+## 
+## Loglikelihood and Information Criteria:
+## 
+##   Loglikelihood user model (H0)            -271204.130
+##   Loglikelihood unrestricted model (H1)    -268998.593
+##                                                       
+##   Akaike (AIC)                              542888.261
+##   Bayesian (BIC)                            544526.642
+##   Sample-size adjusted Bayesian (BIC)       543763.980
+## 
+## Root Mean Square Error of Approximation:
+## 
+##   RMSEA                                          0.046
+##   90 Percent confidence interval - lower         0.045
+##   90 Percent confidence interval - upper         0.047
+##   P-value RMSEA &lt;= 0.05                          1.000
+## 
+## Standardized Root Mean Square Residual:
+## 
+##   SRMR                                           0.051
+## 
+## Parameter Estimates:
+## 
+##   Standard errors                             Standard
+##   Information                                 Expected
+##   Information saturated (h1) model          Structured
+## 
+## 
+## Group 1 [Eng &amp; Nat]:
+## 
+## Latent Variables:
+##                    Estimate  Std.Err  z-value  P(&gt;|z|)
+##   QRP =~                                              
+##     QAttntn           1.000                           
+##     QSprvsn (.p2.)    0.723    0.045   16.184    0.000
+##     QRsDsgn (.p3.)    0.893    0.040   22.519    0.000
+##     QUnfrRv (.p4.)    0.295    0.016   18.391    0.000
+##     QUnsbsC (.p5.)    0.927    0.040   22.957    0.000
+##     QCitSrc (.p6.)    0.422    0.020   20.631    0.000
+##     QResNts (.p7.)    1.047    0.050   20.858    0.000
+##     QCnclDt (.p8.)    0.768    0.035   22.065    0.000
+##     QNRSbmt (.p9.)    0.751    0.045   16.810    0.000
+##     QCnclFl (.10.)    1.030    0.054   19.164    0.000
+##     QSlctCt (.11.)    1.149    0.054   21.221    0.000
+##     RR_sum  (.12.)    0.047    0.014    3.492    0.000
+##   RRP.1 =~                                            
+##     RDsclFn           1.000                           
+##     RCrrctP (.14.)    0.822    0.048   17.037    0.000
+##     RAthrsh (.15.)    0.800    0.032   25.125    0.000
+##     ROpnAcc (.16.)    0.984    0.038   25.923    0.000
+##     RCitSrc (.17.)    0.690    0.025   27.347    0.000
+##     RErrrCh (.18.)    0.838    0.030   27.492    0.000
+##   RRP.2 =~                                            
+##     RKpRcrd           1.000                           
+##     RDatMng (.20.)    1.196    0.053   22.432    0.000
+##     ROpenDt (.21.)    1.366    0.061   22.395    0.000
+##     ROpenCd (.22.)    1.222    0.059   20.603    0.000
+##     RPreReg (.23.)    0.886    0.047   18.709    0.000
+## 
+## Covariances:
+##                    Estimate  Std.Err  z-value  P(&gt;|z|)
+##  .RDisclFunds ~~                                      
+##    .RAuthorship       0.158    0.082    1.938    0.053
+##  .RCorrectPub ~~                                      
+##    .RErrorCheck      -0.261    0.089   -2.932    0.003
+##  .ROpenData ~~                                        
+##    .ROpenCode         0.812    0.115    7.062    0.000
+##   RRP.1 ~~                                            
+##     RRP.2             0.506    0.044   11.564    0.000
+##   QRP ~~                                              
+##     RRP.1            -0.123    0.025   -4.889    0.000
+##     RRP.2             0.031    0.023    1.347    0.178
+## 
+## Intercepts:
+##                    Estimate  Std.Err  z-value  P(&gt;|z|)
+##    .QAttention        2.251    0.040   55.846    0.000
+##    .QSupervision      2.306    0.041   56.245    0.000
+##    .QResDesign        1.595    0.028   56.752    0.000
+##    .QUnfairRev        1.149    0.015   77.932    0.000
+##    .QUnsubstClaims    1.812    0.029   63.259    0.000
+##    .QCiteSource       1.233    0.016   76.018    0.000
+##    .QResNotes         2.405    0.040   60.302    0.000
+##    .QConcealDetals    1.552    0.025   63.261    0.000
+##    .QNoReSubmit       1.962    0.045   43.565    0.000
+##    .QConcealFlaws     2.316    0.043   53.592    0.000
+##    .QSelectCites      2.255    0.043   51.989    0.000
+##    .RR_sum            0.386    0.015   26.430    0.000
+##    .RDisclFunds       5.915    0.054  108.754    0.000
+##    .RCorrectPub       3.932    0.072   54.472    0.000
+##    .RAuthorship       5.709    0.045  127.921    0.000
+##    .ROpenAccess       4.954    0.051   97.179    0.000
+##    .RCiteSource       6.517    0.030  215.841    0.000
+##    .RErrorCheck       6.001    0.037  162.023    0.000
+##    .RKeepRecord       4.039    0.052   77.575    0.000
+##    .RDataManage       5.138    0.054   95.112    0.000
+##    .ROpenData         4.855    0.053   90.814    0.000
+##    .ROpenCode         3.703    0.058   63.908    0.000
+##    .RPreReg           2.063    0.049   42.229    0.000
+##     QRP               0.000                           
+##     RRP.1             0.000                           
+##     RRP.2             0.000                           
+## 
+## Variances:
+##                    Estimate  Std.Err  z-value  P(&gt;|z|)
+##    .QAttention        1.944    0.077   25.318    0.000
+##    .QSupervision      2.234    0.085   26.278    0.000
+##    .QResDesign        0.808    0.034   23.691    0.000
+##    .QUnfairRev        0.281    0.011   26.031    0.000
+##    .QUnsubstClaims    0.827    0.035   23.523    0.000
+##    .QCiteSource       0.307    0.012   25.102    0.000
+##    .QResNotes         1.852    0.074   25.065    0.000
+##    .QConcealDetals    0.625    0.026   23.822    0.000
+##    .QNoReSubmit       2.726    0.103   26.381    0.000
+##    .QConcealFlaws     2.272    0.089   25.473    0.000
+##    .QSelectCites      2.180    0.087   25.027    0.000
+##    .RR_sum            0.311    0.011   27.041    0.000
+##    .RDisclFunds       3.331    0.138   24.165    0.000
+##    .RCorrectPub       6.958    0.268   26.006    0.000
+##    .RAuthorship       2.275    0.094   24.265    0.000
+##    .ROpenAccess       2.835    0.118   24.014    0.000
+##    .RCiteSource       0.858    0.039   21.963    0.000
+##    .RErrorCheck       1.304    0.060   21.892    0.000
+##    .RKeepRecord       3.201    0.132   24.294    0.000
+##    .RDataManage       3.174    0.138   23.008    0.000
+##    .ROpenData         2.749    0.136   20.205    0.000
+##    .ROpenCode         3.768    0.166   22.753    0.000
+##    .RPreReg           2.891    0.117   24.608    0.000
+##     QRP               0.437    0.037   11.805    0.000
+##     RRP.1             1.004    0.076   13.228    0.000
+##     RRP.2             0.771    0.069   11.102    0.000
+## 
+## 
+## Group 2 [Soc &amp; Beh]:
+## 
+## Latent Variables:
+##                    Estimate  Std.Err  z-value  P(&gt;|z|)
+##   QRP =~                                              
+##     QAttntn           1.000                           
+##     QSprvsn (.p2.)    0.723    0.045   16.184    0.000
+##     QRsDsgn (.p3.)    0.893    0.040   22.519    0.000
+##     QUnfrRv (.p4.)    0.295    0.016   18.391    0.000
+##     QUnsbsC (.p5.)    0.927    0.040   22.957    0.000
+##     QCitSrc (.p6.)    0.422    0.020   20.631    0.000
+##     QResNts (.p7.)    1.047    0.050   20.858    0.000
+##     QCnclDt (.p8.)    0.768    0.035   22.065    0.000
+##     QNRSbmt (.p9.)    0.751    0.045   16.810    0.000
+##     QCnclFl (.10.)    1.030    0.054   19.164    0.000
+##     QSlctCt (.11.)    1.149    0.054   21.221    0.000
+##     RR_sum  (.12.)    0.047    0.014    3.492    0.000
+##   RRP.1 =~                                            
+##     RDsclFn           1.000                           
+##     RCrrctP (.14.)    0.822    0.048   17.037    0.000
+##     RAthrsh (.15.)    0.800    0.032   25.125    0.000
+##     ROpnAcc (.16.)    0.984    0.038   25.923    0.000
+##     RCitSrc (.17.)    0.690    0.025   27.347    0.000
+##     RErrrCh (.18.)    0.838    0.030   27.492    0.000
+##   RRP.2 =~                                            
+##     RKpRcrd           1.000                           
+##     RDatMng (.20.)    1.196    0.053   22.432    0.000
+##     ROpenDt (.21.)    1.366    0.061   22.395    0.000
+##     ROpenCd (.22.)    1.222    0.059   20.603    0.000
+##     RPreReg (.23.)    0.886    0.047   18.709    0.000
+## 
+## Covariances:
+##                    Estimate  Std.Err  z-value  P(&gt;|z|)
+##  .RDisclFunds ~~                                      
+##    .RAuthorship       0.388    0.084    4.641    0.000
+##  .RCorrectPub ~~                                      
+##    .RErrorCheck      -0.091    0.080   -1.142    0.253
+##  .ROpenData ~~                                        
+##    .ROpenCode         0.720    0.101    7.104    0.000
+##   RRP.1 ~~                                            
+##     RRP.2             0.536    0.039   13.766    0.000
+##   QRP ~~                                              
+##     RRP.1            -0.090    0.020   -4.588    0.000
+##     RRP.2            -0.015    0.019   -0.788    0.431
+## 
+## Intercepts:
+##                    Estimate  Std.Err  z-value  P(&gt;|z|)
+##    .QAttention        2.282    0.035   65.272    0.000
+##    .QSupervision      2.075    0.035   59.997    0.000
+##    .QResDesign        1.725    0.026   66.864    0.000
+##    .QUnfairRev        1.143    0.013   91.257    0.000
+##    .QUnsubstClaims    1.866    0.024   77.882    0.000
+##    .QCiteSource       1.259    0.013   96.646    0.000
+##    .QResNotes         2.460    0.034   72.578    0.000
+##    .QConcealDetals    1.547    0.022   68.922    0.000
+##    .QNoReSubmit       1.801    0.035   51.836    0.000
+##    .QConcealFlaws     2.371    0.041   58.102    0.000
+##    .QSelectCites      2.306    0.033   69.146    0.000
+##    .RR_sum            0.379    0.013   29.840    0.000
+##    .RDisclFunds       5.792    0.050  116.090    0.000
+##    .RCorrectPub       3.194    0.062   51.735    0.000
+##    .RAuthorship       5.504    0.041  134.243    0.000
+##    .ROpenAccess       4.650    0.046  101.686    0.000
+##    .RCiteSource       6.554    0.025  267.407    0.000
+##    .RErrorCheck       5.918    0.032  184.108    0.000
+##    .RKeepRecord       4.223    0.042  100.129    0.000
+##    .RDataManage       5.542    0.044  125.679    0.000
+##    .ROpenData         4.585    0.048   95.806    0.000
+##    .ROpenCode         2.969    0.050   59.737    0.000
+##    .RPreReg           2.656    0.047   55.928    0.000
+##     QRP               0.000                           
+##     RRP.1             0.000                           
+##     RRP.2             0.000                           
+## 
+## Variances:
+##                    Estimate  Std.Err  z-value  P(&gt;|z|)
+##    .QAttention        2.033    0.069   29.415    0.000
+##    .QSupervision      2.158    0.071   30.397    0.000
+##    .QResDesign        1.013    0.036   28.284    0.000
+##    .QUnfairRev        0.276    0.009   30.128    0.000
+##    .QUnsubstClaims    0.810    0.030   27.141    0.000
+##    .QCiteSource       0.267    0.009   28.687    0.000
+##    .QResNotes         1.852    0.064   29.025    0.000
+##    .QConcealDetals    0.772    0.027   28.356    0.000
+##    .QNoReSubmit       2.163    0.071   30.328    0.000
+##    .QConcealFlaws     2.880    0.096   29.922    0.000
+##    .QSelectCites      1.698    0.060   28.235    0.000
+##    .RR_sum            0.316    0.010   31.317    0.000
+##    .RDisclFunds       4.044    0.141   28.739    0.000
+##    .RCorrectPub       6.917    0.229   30.172    0.000
+##    .RAuthorship       2.761    0.096   28.830    0.000
+##    .ROpenAccess       3.289    0.116   28.386    0.000
+##    .RCiteSource       0.777    0.031   24.804    0.000
+##    .RErrorCheck       1.435    0.055   26.040    0.000
+##    .RKeepRecord       2.732    0.099   27.513    0.000
+##    .RDataManage       2.731    0.106   25.798    0.000
+##    .ROpenData         3.077    0.127   24.264    0.000
+##    .ROpenCode         3.714    0.141   26.358    0.000
+##    .RPreReg           3.834    0.131   29.283    0.000
+##     QRP               0.369    0.030   12.154    0.000
+##     RRP.1             0.848    0.063   13.404    0.000
+##     RRP.2             0.763    0.063   12.133    0.000
+## 
+## 
+## Group 3 [Arts &amp; Hum]:
+## 
+## Latent Variables:
+##                    Estimate  Std.Err  z-value  P(&gt;|z|)
+##   QRP =~                                              
+##     QAttntn           1.000                           
+##     QSprvsn (.p2.)    0.723    0.045   16.184    0.000
+##     QRsDsgn (.p3.)    0.893    0.040   22.519    0.000
+##     QUnfrRv (.p4.)    0.295    0.016   18.391    0.000
+##     QUnsbsC (.p5.)    0.927    0.040   22.957    0.000
+##     QCitSrc (.p6.)    0.422    0.020   20.631    0.000
+##     QResNts (.p7.)    1.047    0.050   20.858    0.000
+##     QCnclDt (.p8.)    0.768    0.035   22.065    0.000
+##     QNRSbmt (.p9.)    0.751    0.045   16.810    0.000
+##     QCnclFl (.10.)    1.030    0.054   19.164    0.000
+##     QSlctCt (.11.)    1.149    0.054   21.221    0.000
+##     RR_sum  (.12.)    0.047    0.014    3.492    0.000
+##   RRP.1 =~                                            
+##     RDsclFn           1.000                           
+##     RCrrctP (.14.)    0.822    0.048   17.037    0.000
+##     RAthrsh (.15.)    0.800    0.032   25.125    0.000
+##     ROpnAcc (.16.)    0.984    0.038   25.923    0.000
+##     RCitSrc (.17.)    0.690    0.025   27.347    0.000
+##     RErrrCh (.18.)    0.838    0.030   27.492    0.000
+##   RRP.2 =~                                            
+##     RKpRcrd           1.000                           
+##     RDatMng (.20.)    1.196    0.053   22.432    0.000
+##     ROpenDt (.21.)    1.366    0.061   22.395    0.000
+##     ROpenCd (.22.)    1.222    0.059   20.603    0.000
+##     RPreReg (.23.)    0.886    0.047   18.709    0.000
+## 
+## Covariances:
+##                    Estimate  Std.Err  z-value  P(&gt;|z|)
+##  .RDisclFunds ~~                                      
+##    .RAuthorship       0.966    0.237    4.076    0.000
+##  .RCorrectPub ~~                                      
+##    .RErrorCheck       0.070    0.165    0.421    0.674
+##  .ROpenData ~~                                        
+##    .ROpenCode        -0.172    0.171   -1.006    0.315
+##   RRP.1 ~~                                            
+##     RRP.2             0.596    0.070    8.538    0.000
+##   QRP ~~                                              
+##     RRP.1            -0.001    0.035   -0.039    0.969
+##     RRP.2             0.134    0.035    3.823    0.000
+## 
+## Intercepts:
+##                    Estimate  Std.Err  z-value  P(&gt;|z|)
+##    .QAttention        2.112    0.064   33.023    0.000
+##    .QSupervision      1.958    0.060   32.693    0.000
+##    .QResDesign        1.407    0.035   39.894    0.000
+##    .QUnfairRev        1.118    0.017   65.617    0.000
+##    .QUnsubstClaims    1.767    0.044   40.505    0.000
+##    .QCiteSource       1.272    0.027   47.975    0.000
+##    .QResNotes         2.053    0.060   34.329    0.000
+##    .QConcealDetals    1.429    0.038   37.830    0.000
+##    .QNoReSubmit       1.377    0.049   28.240    0.000
+##    .QConcealFlaws     1.997    0.060   33.475    0.000
+##    .QSelectCites      2.223    0.066   33.855    0.000
+##    .RR_sum            0.379    0.021   17.701    0.000
+##    .RDisclFunds       4.767    0.105   45.294    0.000
+##    .RCorrectPub       3.398    0.109   31.070    0.000
+##    .RAuthorship       5.115    0.093   54.741    0.000
+##    .ROpenAccess       4.343    0.079   54.777    0.000
+##    .RCiteSource       6.608    0.046  143.703    0.000
+##    .RErrorCheck       5.888    0.065   90.378    0.000
+##    .RKeepRecord       3.682    0.089   41.532    0.000
+##    .RDataManage       4.017    0.100   40.128    0.000
+##    .ROpenData         4.478    0.098   45.731    0.000
+##    .ROpenCode         2.050    0.079   25.981    0.000
+##    .RPreReg           1.731    0.068   25.450    0.000
+##     QRP               0.000                           
+##     RRP.1             0.000                           
+##     RRP.2             0.000                           
+## 
+## Variances:
+##                    Estimate  Std.Err  z-value  P(&gt;|z|)
+##    .QAttention        2.242    0.132   17.020    0.000
+##    .QSupervision      2.093    0.120   17.377    0.000
+##    .QResDesign        0.506    0.034   14.860    0.000
+##    .QUnfairRev        0.153    0.009   16.774    0.000
+##    .QUnsubstClaims    0.903    0.056   16.083    0.000
+##    .QCiteSource       0.383    0.023   16.988    0.000
+##    .QResNotes         1.883    0.112   16.767    0.000
+##    .QConcealDetals    0.697    0.043   16.276    0.000
+##    .QNoReSubmit       1.311    0.077   17.029    0.000
+##    .QConcealFlaws     1.883    0.112   16.789    0.000
+##    .QSelectCites      2.270    0.135   16.771    0.000
+##    .RR_sum            0.291    0.016   17.819    0.000
+##    .RDisclFunds       6.146    0.366   16.791    0.000
+##    .RCorrectPub       6.999    0.408   17.144    0.000
+##    .RAuthorship       4.976    0.293   17.002    0.000
+##    .ROpenAccess       3.127    0.197   15.834    0.000
+##    .RCiteSource       0.917    0.064   14.324    0.000
+##    .RErrorCheck       2.068    0.133   15.552    0.000
+##    .RKeepRecord       4.031    0.245   16.420    0.000
+##    .RDataManage       4.989    0.308   16.206    0.000
+##    .ROpenData         4.291    0.294   14.584    0.000
+##    .ROpenCode         2.514    0.187   13.461    0.000
+##    .RPreReg           2.182    0.139   15.673    0.000
+##     QRP               0.358    0.037    9.557    0.000
+##     RRP.1             0.900    0.103    8.737    0.000
+##     RRP.2             0.969    0.108    9.000    0.000
+## 
+## 
+## Group 4 [Bio &amp; Life]:
+## 
+## Latent Variables:
+##                    Estimate  Std.Err  z-value  P(&gt;|z|)
+##   QRP =~                                              
+##     QAttntn           1.000                           
+##     QSprvsn (.p2.)    0.723    0.045   16.184    0.000
+##     QRsDsgn (.p3.)    0.893    0.040   22.519    0.000
+##     QUnfrRv (.p4.)    0.295    0.016   18.391    0.000
+##     QUnsbsC (.p5.)    0.927    0.040   22.957    0.000
+##     QCitSrc (.p6.)    0.422    0.020   20.631    0.000
+##     QResNts (.p7.)    1.047    0.050   20.858    0.000
+##     QCnclDt (.p8.)    0.768    0.035   22.065    0.000
+##     QNRSbmt (.p9.)    0.751    0.045   16.810    0.000
+##     QCnclFl (.10.)    1.030    0.054   19.164    0.000
+##     QSlctCt (.11.)    1.149    0.054   21.221    0.000
+##     RR_sum  (.12.)    0.047    0.014    3.492    0.000
+##   RRP.1 =~                                            
+##     RDsclFn           1.000                           
+##     RCrrctP (.14.)    0.822    0.048   17.037    0.000
+##     RAthrsh (.15.)    0.800    0.032   25.125    0.000
+##     ROpnAcc (.16.)    0.984    0.038   25.923    0.000
+##     RCitSrc (.17.)    0.690    0.025   27.347    0.000
+##     RErrrCh (.18.)    0.838    0.030   27.492    0.000
+##   RRP.2 =~                                            
+##     RKpRcrd           1.000                           
+##     RDatMng (.20.)    1.196    0.053   22.432    0.000
+##     ROpenDt (.21.)    1.366    0.061   22.395    0.000
+##     ROpenCd (.22.)    1.222    0.059   20.603    0.000
+##     RPreReg (.23.)    0.886    0.047   18.709    0.000
+## 
+## Covariances:
+##                    Estimate  Std.Err  z-value  P(&gt;|z|)
+##  .RDisclFunds ~~                                      
+##    .RAuthorship       0.049    0.050    0.969    0.332
+##  .RCorrectPub ~~                                      
+##    .RErrorCheck      -0.252    0.067   -3.764    0.000
+##  .ROpenData ~~                                        
+##    .ROpenCode         0.801    0.077   10.370    0.000
+##   RRP.1 ~~                                            
+##     RRP.2             0.502    0.031   16.095    0.000
+##   QRP ~~                                              
+##     RRP.1            -0.034    0.016   -2.087    0.037
+##     RRP.2            -0.053    0.013   -4.021    0.000
+## 
+## Intercepts:
+##                    Estimate  Std.Err  z-value  P(&gt;|z|)
+##    .QAttention        2.452    0.030   80.494    0.000
+##    .QSupervision      2.377    0.031   77.362    0.000
+##    .QResDesign        1.740    0.021   82.111    0.000
+##    .QUnfairRev        1.140    0.010  116.222    0.000
+##    .QUnsubstClaims    1.866    0.020   94.423    0.000
+##    .QCiteSource       1.299    0.012  106.232    0.000
+##    .QResNotes         2.492    0.028   89.421    0.000
+##    .QConcealDetals    1.565    0.019   81.922    0.000
+##    .QNoReSubmit       1.927    0.029   65.754    0.000
+##    .QConcealFlaws     2.457    0.034   71.840    0.000
+##    .QSelectCites      2.570    0.031   83.510    0.000
+##    .RR_sum            0.403    0.011   37.360    0.000
+##    .RDisclFunds       6.320    0.033  193.588    0.000
+##    .RCorrectPub       3.614    0.054   67.105    0.000
+##    .RAuthorship       5.190    0.034  153.985    0.000
+##    .ROpenAccess       4.834    0.036  134.697    0.000
+##    .RCiteSource       6.320    0.025  253.260    0.000
+##    .RErrorCheck       5.982    0.027  221.701    0.000
+##    .RKeepRecord       4.341    0.035  124.650    0.000
+##    .RDataManage       5.875    0.030  192.957    0.000
+##    .ROpenData         4.839    0.036  135.856    0.000
+##    .ROpenCode         3.423    0.042   82.310    0.000
+##    .RPreReg           3.198    0.046   69.556    0.000
+##     QRP               0.000                           
+##     RRP.1             0.000                           
+##     RRP.2             0.000                           
+## 
+## Variances:
+##                    Estimate  Std.Err  z-value  P(&gt;|z|)
+##    .QAttention        2.229    0.064   34.929    0.000
+##    .QSupervision      2.425    0.067   36.044    0.000
+##    .QResDesign        0.977    0.029   33.174    0.000
+##    .QUnfairRev        0.236    0.007   35.289    0.000
+##    .QUnsubstClaims    0.797    0.025   31.817    0.000
+##    .QCiteSource       0.353    0.010   34.675    0.000
+##    .QResNotes         1.781    0.052   34.093    0.000
+##    .QConcealDetals    0.814    0.024   33.615    0.000
+##    .QNoReSubmit       2.178    0.061   35.825    0.000
+##    .QConcealFlaws     2.872    0.081   35.318    0.000
+##    .QSelectCites      2.177    0.064   34.171    0.000
+##    .RR_sum            0.318    0.009   37.027    0.000
+##    .RDisclFunds       1.942    0.066   29.638    0.000
+##    .RCorrectPub       7.305    0.205   35.656    0.000
+##    .RAuthorship       2.490    0.075   33.188    0.000
+##    .ROpenAccess       2.584    0.080   32.311    0.000
+##    .RCiteSource       1.242    0.038   32.311    0.000
+##    .RErrorCheck       1.307    0.044   29.812    0.000
+##    .RKeepRecord       2.875    0.084   34.186    0.000
+##    .RDataManage       1.894    0.063   30.119    0.000
+##    .ROpenData         2.633    0.087   30.273    0.000
+##    .ROpenCode         4.068    0.121   33.551    0.000
+##    .RPreReg           5.448    0.151   35.978    0.000
+##     QRP               0.321    0.026   12.500    0.000
+##     RRP.1             0.986    0.061   16.269    0.000
+##     RRP.2             0.457    0.039   11.658    0.000</code></pre>
+<p>The CFI of the weak invariance model is 0.8.</p>
 </div>
 
 
